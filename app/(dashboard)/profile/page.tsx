@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, CheckCircle2 } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
 import Container from "@/components/ui/Container";
@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import ProfileCard from "@/components/profile/ProfileCard";
 import InfoGrid from "@/components/profile/InfoGrid";
 import Timeline from "@/components/profile/Timeline";
+import { me, type WireUser } from "@/lib/api";
 
 const TABS = ["व्यक्तिगत जानकारी", "रिपोर्ट", "लोकेशन", "समयरेखा"];
 
@@ -91,10 +92,17 @@ function LocationHistory() {
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState(0);
+  const [user, setUser] = useState<WireUser | null>(null);
+
+  useEffect(() => {
+    me()
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
 
   return (
     <>
-      <Topbar title="प्रोफाइल" subtitle="राजेश कुमार सिंह — BP-1042" />
+      <Topbar title="प्रोफाइल" subtitle={user ? user.name : "लोड हो रहा है..."} />
 
       <div style={{ flex: 1, overflowY: "auto", paddingBlock: "var(--space-8)" }}>
         <Container>

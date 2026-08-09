@@ -1,5 +1,9 @@
-import { User, Phone, Briefcase, FileText, type LucideIcon } from "lucide-react";
-import { PROFILE_DATA } from "@/lib/constants";
+"use client";
+
+import { useEffect, useState } from "react";
+import { User, Phone, Briefcase, type LucideIcon } from "lucide-react";
+import { me, type WireUser } from "@/lib/api";
+import { ROLE_LABELS, STATUS_LABELS } from "@/lib/users";
 
 interface InfoCard {
   title: string;
@@ -8,55 +12,65 @@ interface InfoCard {
   rows: { label: string; value: string }[];
 }
 
-const INFO_CARDS: InfoCard[] = [
-  {
-    title: "व्यक्तिगत पहचान",
-    Icon: User,
-    tone: { bg: "var(--brand-soft)", fg: "var(--brand-strong)" },
-    rows: [
-      { label: "नाम", value: PROFILE_DATA.name },
-      { label: "जन्म तिथि", value: PROFILE_DATA.dob },
-      { label: "जिला", value: PROFILE_DATA.district },
-      { label: "राज्य", value: PROFILE_DATA.state },
-    ],
-  },
-  {
-    title: "संपर्क जानकारी",
-    Icon: Phone,
-    tone: { bg: "var(--amber-soft)", fg: "var(--amber)" },
-    rows: [
-      { label: "फ़ोन", value: PROFILE_DATA.phone },
-      { label: "पता", value: PROFILE_DATA.address },
-    ],
-  },
-  {
-    title: "आधिकारिक विवरण",
-    Icon: Briefcase,
-    tone: { bg: "var(--emerald-soft)", fg: "var(--emerald)" },
-    rows: [
-      { label: "बैज", value: PROFILE_DATA.badge },
-      { label: "थाना", value: PROFILE_DATA.thana },
-      { label: "रैंक", value: PROFILE_DATA.rank },
-      { label: "सेवा आरंभ", value: PROFILE_DATA.joiningDate },
-    ],
-  },
-  {
-    title: "आत्मसमर्पण विवरण",
-    Icon: FileText,
-    tone: { bg: "var(--violet-soft)", fg: "var(--violet)" },
-    rows: [
-      { label: "केस संख्या", value: PROFILE_DATA.caseNo },
-      { label: "आत्मसमर्पण तिथि", value: PROFILE_DATA.surrenderDate },
-      { label: "अनुपालन दर", value: `${PROFILE_DATA.complianceRate}%` },
-      { label: "कुल रिपोर्ट", value: String(PROFILE_DATA.totalReports) },
-    ],
-  },
-];
+// GET /auth/me's AuthUser has no DOB/district/state/case-number/surrender-date/
+// compliance-rate -- those belong to the Cadre domain, not a User account. The
+// mock version of this component modeled a logged-in admin/SDOP/super_admin as
+// if they were a surrendered cadre, which never matched what the backend can
+// actually return. These three cards show only real WireUser fields.
+function buildCards(user: WireUser): InfoCard[] {
+  return [
+    {
+      title: "पहचान",
+      Icon: User,
+      tone: { bg: "var(--brand-soft)", fg: "var(--brand-strong)" },
+      rows: [
+        { label: "नाम", value: user.name },
+        { label: "भूमिका", value: ROLE_LABELS[user.role] },
+        { label: "स्थिति", value: STATUS_LABELS[user.status ?? "active"] },
+      ],
+    },
+    {
+      title: "संपर्क जानकारी",
+      Icon: Phone,
+      tone: { bg: "var(--amber-soft)", fg: "var(--amber)" },
+      rows: [
+        { label: "फ़ोन", value: user.phone ?? "—" },
+        { label: "ईमेल", value: user.email ?? "—" },
+      ],
+    },
+    {
+      title: "आधिकारिक विवरण",
+      Icon: Briefcase,
+      tone: { bg: "var(--emerald-soft)", fg: "var(--emerald)" },
+      rows: [
+        { label: "पदनाम", value: user.designation ?? "—" },
+        { label: "थाना", value: user.thana ?? "—" },
+        { label: "उप-मंडल", value: user.subDivision ?? "—" },
+      ],
+    },
+  ];
+}
 
 export default function InfoGrid() {
+  const [user, setUser] = useState<WireUser | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    me()
+      .then(setUser)
+      .catch(() => setError(true));
+  }, []);
+
+  if (error) {
+    return <p className="t-body-sm" style={{ color: "var(--rose)" }}>जानकारी लोड नहीं हो सकी।</p>;
+  }
+  if (user === null) {
+    return <p className="t-caption">लोड हो रहा है...</p>;
+  }
+
   return (
     <div className="profile-grid">
-      {INFO_CARDS.map(({ title, Icon, tone, rows }) => (
+      {buildCards(user).map(({ title, Icon, tone, rows }) => (
         <div key={title} className="dash-card">
           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-4)", paddingBottom: "var(--space-3)", borderBottom: "1px solid var(--border)" }}>
             <span

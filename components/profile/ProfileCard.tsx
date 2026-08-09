@@ -1,27 +1,32 @@
-import { Phone, Pencil } from "lucide-react";
-import { PROFILE_DATA } from "@/lib/constants";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Phone, Mail } from "lucide-react";
+import { me, type WireUser } from "@/lib/api";
+import { ROLE_LABELS, STATUS_LABELS } from "@/lib/users";
+import { getInitials } from "@/lib/cadres";
 
 // Quick facts only — full detail lives in the right-hand tab cards, so the
 // summary card stays compact instead of duplicating every field.
-const QUICK_FACTS = [
-  { label: "फ़ोन", value: PROFILE_DATA.phone },
-  { label: "थाना", value: PROFILE_DATA.thana },
-  { label: "जन्म तिथि", value: PROFILE_DATA.dob },
-  { label: "जिला", value: PROFILE_DATA.district },
-];
-
-function StatTile({ value, label, color }: { value: string; label: string; color: string }) {
-  return (
-    <div style={{ padding: "var(--space-4) var(--space-5)", flex: 1 }}>
-      <div className="tabular-nums" style={{ fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.02em", color }}>
-        {value}
-      </div>
-      <div className="t-caption" style={{ marginTop: 2 }}>{label}</div>
-    </div>
-  );
-}
-
 export default function ProfileCard() {
+  const [user, setUser] = useState<WireUser | null>(null);
+
+  useEffect(() => {
+    me()
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
+
+  const scope = user?.thana ?? user?.subDivision ?? "मुख्यालय";
+  const quickFacts = user
+    ? [
+        { label: "फ़ोन", value: user.phone ?? "—" },
+        { label: "ईमेल", value: user.email ?? "—" },
+        { label: "थाना / उप-मंडल", value: scope },
+        { label: "स्थिति", value: STATUS_LABELS[user.status ?? "active"] },
+      ]
+    : [];
+
   return (
     <div className="card card--elevated" style={{ width: "100%", overflow: "hidden", padding: 0 }}>
       {/* Banner */}
@@ -45,35 +50,30 @@ export default function ProfileCard() {
             boxShadow: "var(--shadow-md)",
           }}
         >
-          {PROFILE_DATA.avatar}
+          {user ? getInitials(user.name) : "—"}
         </div>
       </div>
 
       {/* Identity */}
       <div style={{ padding: "0 var(--space-5) var(--space-4)" }}>
-        <h2 className="t-h4" style={{ fontSize: "1.0625rem" }}>{PROFILE_DATA.name}</h2>
-        <p className="t-caption" style={{ marginTop: 2 }}>
-          {PROFILE_DATA.rank} · {PROFILE_DATA.badge}
-        </p>
-        <p className="t-caption" style={{ color: "var(--text-disabled)" }}>{PROFILE_DATA.thana}</p>
-      </div>
-
-      {/* Stats */}
-      <div style={{ display: "flex", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-        <StatTile value={String(PROFILE_DATA.totalReports)} label="कुल रिपोर्ट" color="var(--brand-strong)" />
-        <div style={{ width: 1, background: "var(--border)" }} />
-        <StatTile value={`${PROFILE_DATA.complianceRate}%`} label="अनुपालन दर" color="var(--emerald)" />
+        <h2 className="t-h4" style={{ fontSize: "1.0625rem" }}>{user?.name ?? "लोड हो रहा है..."}</h2>
+        {user && (
+          <p className="t-caption" style={{ marginTop: 2 }}>
+            {ROLE_LABELS[user.role]}{user.designation ? ` · ${user.designation}` : ""}
+          </p>
+        )}
+        {user && <p className="t-caption" style={{ color: "var(--text-disabled)" }}>{scope}</p>}
       </div>
 
       {/* Actions */}
-      <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", gap: "var(--space-3)" }}>
-        <button className="btn btn--sm" style={{ flex: 1, background: "var(--emerald-soft)", color: "var(--emerald)" }}>
+      <div style={{ padding: "var(--space-4) var(--space-5)", display: "flex", gap: "var(--space-3)", borderTop: "1px solid var(--border)" }}>
+        <button className="btn btn--sm" style={{ flex: 1, background: "var(--emerald-soft)", color: "var(--emerald)" }} disabled={!user?.phone}>
           <Phone size={14} strokeWidth={2} />
           फ़ोन करें
         </button>
-        <button className="btn btn--sm" style={{ flex: 1, background: "var(--brand-soft)", color: "var(--brand-strong)" }}>
-          <Pencil size={14} strokeWidth={2} />
-          संपादित
+        <button className="btn btn--sm" style={{ flex: 1, background: "var(--brand-soft)", color: "var(--brand-strong)" }} disabled={!user?.email}>
+          <Mail size={14} strokeWidth={2} />
+          ईमेल करें
         </button>
       </div>
 
@@ -81,7 +81,7 @@ export default function ProfileCard() {
       <div style={{ padding: "var(--space-2) var(--space-5) var(--space-5)", borderTop: "1px solid var(--border)" }}>
         <div className="t-overline" style={{ margin: "var(--space-4) 0 var(--space-3)" }}>मुख्य जानकारी</div>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-          {QUICK_FACTS.map((f) => (
+          {quickFacts.map((f) => (
             <div key={f.label} style={{ display: "flex", justifyContent: "space-between", gap: "var(--space-3)", alignItems: "baseline" }}>
               <span style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", fontWeight: 500, flexShrink: 0 }}>{f.label}</span>
               <span style={{ fontSize: "0.8125rem", color: "var(--text-primary)", fontWeight: 500, textAlign: "right", lineHeight: 1.4 }}>{f.value}</span>

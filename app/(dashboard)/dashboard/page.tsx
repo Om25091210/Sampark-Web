@@ -5,7 +5,7 @@ import Topbar from "@/components/layout/Topbar";
 import Container from "@/components/ui/Container";
 import StatCard from "@/components/dashboard/StatCard";
 import BarChart from "@/components/dashboard/BarChart";
-import CSPPerformance from "@/components/dashboard/CSPPerformance";
+import SDOPPerformance from "@/components/dashboard/SDOPPerformance";
 import RecentReportsTable from "@/components/dashboard/RecentReportsTable";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
 import { getDashboardStats, type DashboardStats } from "@/lib/api";
@@ -56,18 +56,21 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Body: main column (chart + reports) + right rail (CSP + activity).
-                These still read mock data -- there is no backend endpoint yet for
-                reporting trend series, CSP-level rollups, a "recent reports" feed,
-                or an activity log (out of Phase 1 backend scope). Not wired this
-                pass; flagged rather than silently left looking real. */}
+            {/* Body: main column (chart + reports) + right rail (SDOP + activity).
+                RecentReportsTable (GET /reports) and SDOPPerformance
+                (GET /stats/hierarchy) are wired to real data. BarChart's monthly
+                tasks-vs-reports trend and ActivityFeed's cross-domain live feed
+                have no backing endpoint (no org-wide time-series stat, no unified
+                activity log across reports/changes/contact-updates) -- out of
+                Phase 1 backend scope, so both stay mock. Flagged, not silently
+                left looking real. */}
             <div className="dash-columns">
               <div className="dash-col">
                 <BarChart />
                 <RecentReportsTable />
               </div>
               <div className="dash-col">
-                <CSPPerformance />
+                <SDOPPerformance />
                 <ActivityFeed />
               </div>
             </div>

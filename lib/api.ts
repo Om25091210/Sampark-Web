@@ -116,7 +116,10 @@ export interface HierarchyRow {
 }
 
 export interface HierarchyStats {
-  level: "officers" | "sdops" | "thanas";
+  // ADR-055: an SDOP (admin) caller gets "officers" (their own roster), HQ
+  // (super_admin) gets "admins" (one row per SDOP), ?by=thana gets "thanas".
+  // "sdops" was never a real value the backend returns -- fixed to match.
+  level: "officers" | "admins" | "thanas";
   rows: HierarchyRow[];
   totalAssigned: number;
   totalCurrent: number;
@@ -328,6 +331,103 @@ export async function listCadres(params: ListCadresParams): Promise<PaginatedRes
 
 export async function getCadreFacets(category?: string): Promise<CadreFacets> {
   return apiFetch<CadreFacets>("/cadres/facets", { query: { category } });
+}
+
+// ─── Officers (admin+) ────────────────────────────────────────────────────────
+
+export interface WireOfficer extends WireUser {
+  assignedCadreCount: number;
+}
+
+export interface ListOfficersParams {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listOfficers(params: ListOfficersParams): Promise<PaginatedResponse<WireOfficer>> {
+  return apiFetch<PaginatedResponse<WireOfficer>>("/officers", {
+    query: { search: params.search, page: params.page, pageSize: params.pageSize },
+  });
+}
+
+// ─── Reports (aggregate feed, ADR-021) ───────────────────────────────────────
+
+export interface WireReportCadre {
+  id: number;
+  name: string;
+  phone: string;
+  avatarUrl?: string;
+}
+
+export interface WireReport {
+  id: number;
+  cadreId: number;
+  cadre?: WireReportCadre;
+  reportingPlace: "thana" | "village";
+  personStatus: "alive" | "dead";
+  currentActivity: string;
+  reportedAt: string;
+  reportedBy: number;
+}
+
+export interface ListReportsParams {
+  reportedBy?: string | number;
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listReports(params: ListReportsParams): Promise<PaginatedResponse<WireReport>> {
+  return apiFetch<PaginatedResponse<WireReport>>("/reports", {
+    query: {
+      reportedBy: params.reportedBy !== undefined ? String(params.reportedBy) : undefined,
+      search: params.search,
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  });
+}
+
+// ─── Notifications (ADR-048) ─────────────────────────────────────────────────
+
+export interface WireNotification {
+  id: number;
+  type: string;
+  title: string;
+  body: string;
+  cadreId?: number;
+  cadreChangeId?: number;
+  cadreCreateRequestId?: number;
+  readAt?: string;
+  createdAt: string;
+}
+
+export interface ListNotificationsParams {
+  unreadOnly?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listNotifications(
+  params: ListNotificationsParams,
+): Promise<PaginatedResponse<WireNotification>> {
+  return apiFetch<PaginatedResponse<WireNotification>>("/notifications", {
+    query: { unreadOnly: params.unreadOnly ? "true" : undefined, page: params.page, pageSize: params.pageSize },
+  });
+}
+
+export async function getUnreadNotificationCount(): Promise<number> {
+  const res = await apiFetch<{ count: number }>("/notifications/unread-count");
+  return res.count;
+}
+
+export async function markNotificationRead(id: number): Promise<void> {
+  return apiFetch<void>(`/notifications/${id}/read`, { method: "POST" });
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  return apiFetch<void>("/notifications/read-all", { method: "POST" });
 }
 
 // ─── Users (Phase 2 — web User Management, super_admin only) ────────────────────
