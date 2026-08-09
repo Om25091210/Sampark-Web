@@ -6,9 +6,14 @@ Admin/desktop portal for SP Bijapur. Read the root `../CLAUDE.md` for project-wi
 **Heed `AGENTS.md` above: this is Next.js 16 — do not assume Next 14/15 behavior. Consult
 `node_modules/next/dist/docs/` before writing framework code.** As of Phase 4 (SAMPARK Web /
 B-Smart plan), **auth and the dashboard/records pages are wired to the real backend** via
-`NEXT_PUBLIC_API_URL` (default `https://api.bsmart.net.in/api/v1`). The reporting-trend chart,
-CSP rollup, recent-reports table, activity feed, officers/tracker/notifications/profile pages,
-and the hierarchy drill-down remain **mock/unwired** — most have no backend endpoint yet
+`NEXT_PUBLIC_API_URL` (default `https://api.bsmart.net.in/api/v1`). As of Phase 5, **`/users`
+(User Management) is wired to Phase 2's real CRUD API** — searchable/paginated table, create,
+edit (role/thana/subDivision/designation), a separately-confirmed password reset, and deactivate,
+all via `lib/api.ts`; gated `super_admin`-only per ADR-056 (nav link hidden for UX via
+`Sidebar.tsx`'s `getRole()` check, but the real gate is the API's `requireRole('super_admin')` —
+confirmed live: a non-super_admin token gets a real 403 from `GET /users`). The reporting-trend
+chart, CSP rollup, recent-reports table, activity feed, officers/tracker/notifications/profile
+pages, and the hierarchy drill-down remain **mock/unwired** — most have no backend endpoint yet
 (activity feed, leaderboard, deeper analytics are out of Phase 1 backend scope).
 
 ## Stack (do not change without instruction)

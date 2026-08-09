@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid,
@@ -8,21 +9,32 @@ import {
   BarChart3,
   User,
   Users,
+  UserCog,
   Crosshair,
   Bell,
   LogOut,
 } from "lucide-react";
-import { logout } from "@/lib/api";
+import { logout, getRole } from "@/lib/api";
 
 const ICON_PROPS = { size: 18, strokeWidth: 1.75 } as const;
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "डैशबोर्ड", badge: null, icon: <LayoutGrid {...ICON_PROPS} /> },
   { href: "/records", label: "रिपोर्टिंग रिकॉर्ड", badge: "12", icon: <FileText {...ICON_PROPS} /> },
   { href: "/records/analytics", label: "रिपोर्ट विश्लेषण", badge: null, icon: <BarChart3 {...ICON_PROPS} /> },
   { href: "/profile", label: "प्रोफाइल", badge: null, icon: <User {...ICON_PROPS} /> },
   { href: "/officers", label: "अधिकारी सूची", badge: null, icon: <Users {...ICON_PROPS} /> },
 ];
+
+// ADR-056: web login is super_admin-only, so this is UX only -- every route this
+// links to is independently gated server-side (requireRole('super_admin')). Hiding
+// it for a non-super_admin session is never the control, only the affordance.
+const USERS_NAV_ITEM = {
+  href: "/users",
+  label: "उपयोगकर्ता प्रबंधन",
+  badge: null,
+  icon: <UserCog {...ICON_PROPS} />,
+};
 
 const SYSTEM_ITEMS = [
   { href: "/tracker", label: "लोकेशन ट्रैकर", icon: <Crosshair {...ICON_PROPS} /> },
@@ -32,6 +44,14 @@ const SYSTEM_ITEMS = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  // Deferred to an effect (not computed inline from the cookie) so the server-rendered
+  // markup and the client's first render match -- getRole() only exists client-side,
+  // and reading it during render would desync SSR HTML from the hydrated DOM.
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  useEffect(() => {
+    setIsSuperAdmin(getRole() === "super_admin");
+  }, []);
+  const NAV_ITEMS = isSuperAdmin ? [...BASE_NAV_ITEMS, USERS_NAV_ITEM] : BASE_NAV_ITEMS;
 
   async function handleLogout() {
     await logout();

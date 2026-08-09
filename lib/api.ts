@@ -330,4 +330,67 @@ export async function getCadreFacets(category?: string): Promise<CadreFacets> {
   return apiFetch<CadreFacets>("/cadres/facets", { query: { category } });
 }
 
+// ─── Users (Phase 2 — web User Management, super_admin only) ────────────────────
+
+export interface ListUsersParams {
+  role?: string;
+  thana?: string;
+  subDivision?: string;
+  status?: "active" | "deactivated" | "all";
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface CreateUserBody {
+  name: string;
+  email: string;
+  role: WireUser["role"];
+  password?: string;
+  thana?: string;
+  subDivision?: string;
+  designation?: string;
+}
+
+export interface UpdateUserBody {
+  role?: WireUser["role"];
+  thana?: string | null;
+  subDivision?: string | null;
+  designation?: string | null;
+}
+
+export async function listUsers(params: ListUsersParams): Promise<PaginatedResponse<WireUser>> {
+  return apiFetch<PaginatedResponse<WireUser>>("/users", {
+    query: {
+      role: params.role,
+      thana: params.thana,
+      subDivision: params.subDivision,
+      status: params.status,
+      search: params.search,
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  });
+}
+
+export async function getUser(userId: number): Promise<WireUser> {
+  return apiFetch<WireUser>(`/users/${userId}`);
+}
+
+export async function createUser(body: CreateUserBody): Promise<WireUser> {
+  return apiFetch<WireUser>("/users", { method: "POST", body });
+}
+
+export async function updateUser(userId: number, body: UpdateUserBody): Promise<WireUser> {
+  return apiFetch<WireUser>(`/users/${userId}`, { method: "PATCH", body });
+}
+
+export async function setUserPassword(userId: number, password: string): Promise<void> {
+  return apiFetch<void>(`/users/${userId}/password`, { method: "POST", body: { password } });
+}
+
+export async function deactivateUser(userId: number): Promise<void> {
+  return apiFetch<void>(`/users/${userId}`, { method: "DELETE" });
+}
+
 export { ApiError };
