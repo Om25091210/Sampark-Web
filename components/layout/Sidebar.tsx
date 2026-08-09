@@ -10,6 +10,7 @@ import {
   User,
   Users,
   UserCog,
+  Settings,
   Crosshair,
   Bell,
   LogOut,
@@ -36,6 +37,13 @@ const USERS_NAV_ITEM = {
   icon: <UserCog {...ICON_PROPS} />,
 };
 
+const CONFIG_NAV_ITEM = {
+  href: "/config",
+  label: "कॉन्फ़िगरेशन",
+  badge: null,
+  icon: <Settings {...ICON_PROPS} />,
+};
+
 const SYSTEM_ITEMS = [
   { href: "/tracker", label: "लोकेशन ट्रैकर", icon: <Crosshair {...ICON_PROPS} /> },
   { href: "/notifications", label: "सूचनाएं", icon: <Bell {...ICON_PROPS} /> },
@@ -51,7 +59,7 @@ export default function Sidebar() {
   useEffect(() => {
     setIsSuperAdmin(getRole() === "super_admin");
   }, []);
-  const NAV_ITEMS = isSuperAdmin ? [...BASE_NAV_ITEMS, USERS_NAV_ITEM] : BASE_NAV_ITEMS;
+  const NAV_ITEMS = isSuperAdmin ? [...BASE_NAV_ITEMS, USERS_NAV_ITEM, CONFIG_NAV_ITEM] : BASE_NAV_ITEMS;
 
   async function handleLogout() {
     await logout();

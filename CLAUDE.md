@@ -11,10 +11,16 @@ B-Smart plan), **auth and the dashboard/records pages are wired to the real back
 edit (role/thana/subDivision/designation), a separately-confirmed password reset, and deactivate,
 all via `lib/api.ts`; gated `super_admin`-only per ADR-056 (nav link hidden for UX via
 `Sidebar.tsx`'s `getRole()` check, but the real gate is the API's `requireRole('super_admin')` —
-confirmed live: a non-super_admin token gets a real 403 from `GET /users`). The reporting-trend
-chart, CSP rollup, recent-reports table, activity feed, officers/tracker/notifications/profile
-pages, and the hierarchy drill-down remain **mock/unwired** — most have no backend endpoint yet
-(activity feed, leaderboard, deeper analytics are out of Phase 1 backend scope).
+confirmed live: a non-super_admin token gets a real 403 from `GET /users`). As of Phase 6, **`/config`
+(Configuration) manages exactly one non-secret value** per ADR-059 — the Apps Script Web App
+deployment URL, via `GET`/`PATCH /config` — plus a read-only sync status panel (`GET
+/config/sync-log`, last-successful-sync-per-type + recent activity, `super_admin`-only, same real
+403 gate as `/users`). **The shared-secret sync credential is never entered, displayed, or
+reachable from this page or any other web endpoint** — hand-provisioned into Secrets Manager only,
+per ADR-059 §2; do not add a credential field to this page. The reporting-trend chart, CSP rollup,
+recent-reports table, activity feed, officers/tracker/notifications/profile pages, and the
+hierarchy drill-down remain **mock/unwired** — most have no backend endpoint yet (activity feed,
+leaderboard, deeper analytics are out of Phase 1 backend scope).
 
 ## Stack (do not change without instruction)
 

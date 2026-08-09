@@ -393,4 +393,33 @@ export async function deactivateUser(userId: number): Promise<void> {
   return apiFetch<void>(`/users/${userId}`, { method: "DELETE" });
 }
 
+// ─── Config (Phase 6 — Configuration page, super_admin only, ADR-059) ───────────
+
+export interface WireConfig {
+  sheetsSyncUrl: string | null;
+  updatedAt: string;
+  updatedById: number | null;
+}
+
+export interface WireSyncLogEntry {
+  id: number;
+  eventType: string;
+  targetKey: string | null;
+  status: "success" | "error";
+  error: string | null;
+  createdAt: string;
+}
+
+export async function getConfig(): Promise<WireConfig> {
+  return apiFetch<WireConfig>("/config");
+}
+
+export async function updateConfig(sheetsSyncUrl: string | null): Promise<WireConfig> {
+  return apiFetch<WireConfig>("/config", { method: "PATCH", body: { sheetsSyncUrl } });
+}
+
+export async function listSyncLog(limit = 20): Promise<WireSyncLogEntry[]> {
+  return apiFetch<WireSyncLogEntry[]>("/config/sync-log", { query: { limit } });
+}
+
 export { ApiError };
