@@ -12,6 +12,7 @@ import {
   Bell,
   LogOut,
 } from "lucide-react";
+import { logout } from "@/lib/api";
 
 const ICON_PROPS = { size: 18, strokeWidth: 1.75 } as const;
 
@@ -32,8 +33,8 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  function handleLogout() {
-    sessionStorage.removeItem("sampark_authed");
+  async function handleLogout() {
+    await logout();
     router.replace("/login");
   }
 

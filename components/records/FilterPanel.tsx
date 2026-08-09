@@ -4,14 +4,14 @@ import { useState } from "react";
 import { Search, ChevronDown, Check, X } from "lucide-react";
 import {
   CATEGORY_OPTIONS,
-  THANA_OPTIONS,
   activeRefineCount,
-  type CadreCategory,
   type RecordFilters,
 } from "@/lib/cadres";
 
 interface FilterPanelProps {
   filters: RecordFilters;
+  /** Real distinct thana values from GET /cadres/facets -- never hardcoded. */
+  thanaOptions: string[];
   onSearch: (value: string) => void;
   onToggle: (group: "category" | "thana", value: string) => void;
   onClear: () => void;
@@ -23,12 +23,11 @@ interface Group {
   options: { value: string; label: string }[];
 }
 
-const GROUPS: Group[] = [
-  { key: "category", title: "श्रेणी", options: CATEGORY_OPTIONS as { value: string; label: string }[] },
-  { key: "thana", title: "थाना", options: THANA_OPTIONS.map((t) => ({ value: t, label: t })) },
-];
-
-export default function FilterPanel({ filters, onSearch, onToggle, onClear }: FilterPanelProps) {
+export default function FilterPanel({ filters, thanaOptions, onSearch, onToggle, onClear }: FilterPanelProps) {
+  const GROUPS: Group[] = [
+    { key: "category", title: "श्रेणी", options: CATEGORY_OPTIONS as { value: string; label: string }[] },
+    { key: "thana", title: "थाना", options: thanaOptions.map((t) => ({ value: t, label: t })) },
+  ];
   const [expanded, setExpanded] = useState<Set<string>>(new Set(["श्रेणी", "थाना"]));
 
   const toggleGroup = (title: string) => {

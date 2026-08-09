@@ -4,8 +4,12 @@
 
 Admin/desktop portal for SP Bijapur. Read the root `../CLAUDE.md` for project-wide rules first.
 **Heed `AGENTS.md` above: this is Next.js 16 — do not assume Next 14/15 behavior. Consult
-`node_modules/next/dist/docs/` before writing framework code.** Currently runs on **mock data**,
-no backend, no env vars.
+`node_modules/next/dist/docs/` before writing framework code.** As of Phase 4 (SAMPARK Web /
+B-Smart plan), **auth and the dashboard/records pages are wired to the real backend** via
+`NEXT_PUBLIC_API_URL` (default `https://api.bsmart.net.in/api/v1`). The reporting-trend chart,
+CSP rollup, recent-reports table, activity feed, officers/tracker/notifications/profile pages,
+and the hierarchy drill-down remain **mock/unwired** — most have no backend endpoint yet
+(activity feed, leaderboard, deeper analytics are out of Phase 1 backend scope).
 
 ## Stack (do not change without instruction)
 
@@ -61,11 +65,17 @@ no backend, no env vars.
 ## State, data, auth
 
 - **No global store / Context.** Local `useState` / `useMemo` only; lift filter state and pass
-  callbacks down as props (see `records/page.tsx` + `applyFilter`).
-- Data is **in-memory mock** from `lib/`. No fetch/API client yet. When the backend arrives,
-  add a typed client; keep tokens/design untouched.
-- **Auth is faux/client-side:** `login` sets `sessionStorage["sampark_authed"]`; `(dashboard)/layout.tsx`
-  gates on it in `useEffect`. No `middleware.ts`. Do not present this as real security.
+  callbacks down as props (see `records/page.tsx`).
+- **`lib/api.ts` is the one typed API client** — plain `fetch`, no React Query/axios. Every
+  authenticated call goes through `apiFetch()`, which attaches the `Bearer` token and retries
+  once through `POST /auth/refresh` on a 401 (single-flight, mirrors the mobile client's
+  interceptor). Pages still not wired to the backend keep reading `lib/constants.ts` mock arrays.
+- **Auth is real** (ADR-042 email+password, then TOTP for admin/super_admin — see `app/login/page.tsx`'s
+  two-step form). Tokens live in plain (non-httpOnly) cookies — `proxy.ts` (Next 16's renamed
+  `middleware.ts`) reads the access-token cookie server-side to gate every non-public route before
+  the page renders. This is a real, server-enforced gate — a step up from the old sessionStorage
+  flag — but the cookie is still readable by any script (no httpOnly), so it is not bank-grade
+  security; per-role authorization stays the backend's job (API-enforced, never UI-only).
 
 ## Language
 

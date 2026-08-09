@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { hasSession } from "@/lib/api";
 
 const HERO_PROFILES = [
   { name: "मनोज कुमार", badge: "BP-2045", avatar: "MK", status: "पूर्ण" },
@@ -18,8 +19,7 @@ export default function HeroSection() {
   const router = useRouter();
 
   const authNav = (dest: string) => {
-    const isAuthed = Boolean(sessionStorage.getItem("sampark_authed"));
-    router.push(isAuthed ? dest : "/login");
+    router.push(hasSession() ? dest : "/login");
   };
 
   return (

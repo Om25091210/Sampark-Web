@@ -19,54 +19,6 @@ export interface Cadre {
   aliases?: string[];
 }
 
-export const CADRES: Cadre[] = [
-  {
-    id: 1,
-    name: "बबलू माडवी",
-    phone: "+91-9770784646",
-    thana: "बीजापुर / गंगालूर",
-    currentAddress: "मचीपाडा थाना गंगालूर जिला बीजापुर छ०ग०",
-    designation: "पश्चिम बस्तर डिवीजन डीकेबीसीएम (प्लाटून न०12 कमांडर)",
-    category: "surrendered",
-    alertLevel: "critical",
-    alertDate: "2026-05-16",
-    aliases: ["बब्बू", "माडू", "B-12 कमांडर"],
-  },
-  {
-    id: 5,
-    name: "महेन्द्र कुमार मड़कम",
-    phone: "+91-9753402185",
-    thana: "नारायणपुर",
-    currentAddress: "ग्राम धनोरा, थाना नारायणपुर, जिला नारायणपुर",
-    designation: "दस्ते का सदस्य",
-    category: "thana",
-    alertLevel: "normal",
-    alertDate: "2026-06-02",
-  },
-  {
-    id: 6,
-    name: "किरण बाई नेताम",
-    phone: "+91-8319641027",
-    thana: "दंतेवाड़ा",
-    currentAddress: "ग्राम गोमपाड, थाना दंतेवाड़ा, जिला दंतेवाड़ा",
-    designation: "महिला संगठन सदस्य",
-    category: "surrendered",
-    alertLevel: "warning",
-    alertDate: "2026-05-28",
-  },
-  {
-    id: 7,
-    name: "राजेंद्र कश्यप",
-    phone: "+91-7049528963",
-    thana: "सुकमा",
-    currentAddress: "ग्राम छिंदगढ़, थाना सुकमा, जिला सुकमा",
-    designation: "सीनियर कैडर",
-    category: "jail",
-    alertLevel: "critical",
-    alertDate: "2026-06-10",
-  },
-];
-
 // ─── Filter option catalogues (labels from the mobile MasterFilterSheet) ──────
 
 export const ALERT_LEVELS: { value: AlertLevel; label: string }[] = [
@@ -79,13 +31,6 @@ export const CATEGORY_OPTIONS: { value: CadreCategory; label: string }[] = [
   { value: "surrendered", label: "आत्मसमर्पित" },
   { value: "thana", label: "थाना कैडर" },
   { value: "jail", label: "जेल / बेल" },
-];
-
-export const THANA_OPTIONS = [
-  "बीजापुर / गंगालूर",
-  "नारायणपुर",
-  "दंतेवाड़ा",
-  "सुकमा",
 ];
 
 export const CATEGORY_CHIP: Record<CadreCategory, string> = {
@@ -156,28 +101,7 @@ export function activeRefineCount(f: RecordFilters): number {
   return f.category.length + f.thana.length;
 }
 
-export function applyFilter(cadres: Cadre[], f: RecordFilters): Cadre[] {
-  const raw = f.search.toLowerCase().trim();
-  const isAka = raw.startsWith("@");
-  const term = isAka ? raw.slice(1).trim() : raw;
-
-  let list = [...cadres];
-
-  // Text search — "@" prefix searches aliases (matches mobile)
-  if (term) {
-    list = list.filter((c) => {
-      if (isAka) return c.aliases?.some((a) => a.toLowerCase().includes(term)) ?? false;
-      return (
-        c.name.toLowerCase().includes(term) ||
-        c.thana.toLowerCase().includes(term) ||
-        c.designation.toLowerCase().includes(term)
-      );
-    });
-  }
-
-  if (f.alertLevel !== "all") list = list.filter((c) => c.alertLevel === f.alertLevel);
-  if (f.category.length > 0) list = list.filter((c) => f.category.includes(c.category));
-  if (f.thana.length > 0) list = list.filter((c) => f.thana.some((t) => c.thana.includes(t)));
-
-  return list;
-}
+// Filtering is now server-side (GET /cadres query params) -- applyFilter's
+// client-side re-implementation of the same logic is gone. The "@alias" search
+// convention is handled server-side too (ADR-033/cadres.service.ts) -- pass
+// `filters.search` straight through to the API's `search` param, "@" and all.

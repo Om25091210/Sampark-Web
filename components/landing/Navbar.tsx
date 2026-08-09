@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { hasSession } from "@/lib/api";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
 
   const authNav = (dest: string) => {
-    const isAuthed = Boolean(sessionStorage.getItem("sampark_authed"));
-    router.push(isAuthed ? dest : "/login");
+    router.push(hasSession() ? dest : "/login");
   };
 
   const navLinkStyle: React.CSSProperties = {

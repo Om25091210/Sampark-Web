@@ -1,34 +1,14 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Sidebar from "@/components/layout/Sidebar";
 
+// Route gating is now `middleware.ts` (server-enforced, reads the access-token
+// cookie before this layout ever renders) -- the old client-side sessionStorage
+// check + "checking/denied" spinner state is gone, since there is nothing left
+// for it to guard against.
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
-  const [status, setStatus] = useState<"checking" | "authed" | "denied">("checking");
-
-  useEffect(() => {
-    const isAuthed = typeof window !== "undefined" && Boolean(sessionStorage.getItem("sampark_authed"));
-    if (isAuthed) {
-      setStatus("authed");
-    } else {
-      setStatus("denied");
-      router.replace("/login");
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (status === "checking" || status === "denied") return (
-    <div style={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center", background: "var(--bg)" }}>
-      <div style={{ width: 36, height: 36, border: "3px solid var(--border)", borderTopColor: "var(--brand)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-    </div>
-  );
-
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
       <Sidebar />

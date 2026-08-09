@@ -5,6 +5,9 @@ import {
   Hourglass,
   TrendingUp,
   TrendingDown,
+  Users,
+  AlertTriangle,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 import Card from "@/components/ui/Card";
@@ -14,7 +17,9 @@ type ColorKey = "accent" | "orange" | "success" | "danger";
 interface StatCardProps {
   label: string;
   value: string;
-  delta: string;
+  /** Absent for real (non-comparative) stats -- the backend has no "vs last week"
+   *  figure, and this component must not invent a trend arrow for one. */
+  delta?: string;
   color: ColorKey;
   icon: string;
 }
@@ -32,13 +37,16 @@ const ICONS: Record<string, LucideIcon> = {
   pending: Clock,
   done: CheckCircle2,
   waiting: Hourglass,
+  cadres: Users,
+  alerts: AlertTriangle,
+  reports: FileText,
 };
 
 export default function StatCard({ label, value, delta, color, icon }: StatCardProps) {
   const tone = TONES[color];
   const Icon = ICONS[icon] ?? ClipboardList;
-  const isPositive = delta.startsWith("+");
-  const isNegative = delta.startsWith("-");
+  const isPositive = delta?.startsWith("+") ?? false;
+  const isNegative = delta?.startsWith("-") ?? false;
   const deltaColor = isPositive
     ? "var(--emerald)"
     : isNegative
@@ -85,21 +93,23 @@ export default function StatCard({ label, value, delta, color, icon }: StatCardP
         {value}
       </div>
 
-      {/* Delta */}
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "var(--space-1)",
-          fontSize: "0.8125rem",
-          fontWeight: 600,
-          color: deltaColor,
-        }}
-      >
-        {isPositive && <TrendingUp size={14} strokeWidth={2} />}
-        {isNegative && <TrendingDown size={14} strokeWidth={2} />}
-        <span>{delta}</span>
-      </div>
+      {/* Delta — omitted entirely when the caller has no comparative figure */}
+      {delta && (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "var(--space-1)",
+            fontSize: "0.8125rem",
+            fontWeight: 600,
+            color: deltaColor,
+          }}
+        >
+          {isPositive && <TrendingUp size={14} strokeWidth={2} />}
+          {isNegative && <TrendingDown size={14} strokeWidth={2} />}
+          <span>{delta}</span>
+        </div>
+      )}
     </Card>
   );
 }

@@ -1,10 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { login, verifyTwoFactor, ApiError, type LoginResult } from "@/lib/api";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
@@ -12,9 +22,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
+  // Step 2 -- present only for admin/super_admin (ADR-042 TOTP track). `pending`
+  // carries the challenge_token plus, on first-ever login, the enrolment secret/URI
+  // to show once (the account isn't usable until a code confirms it).
+  const [pending, setPending] = useState<
+    | null
+    | { kind: "totp_required"; challengeToken: string }
+    | { kind: "totp_enrollment"; challengeToken: string; secret: string; uri: string }
+  >(null);
+  const [otp, setOtp] = useState("");
+
   useEffect(() => setMounted(true), []);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function goToNext() {
+    const next = searchParams.get("next");
+    router.push(next && next.startsWith("/") ? next : "/dashboard");
+  }
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
 
@@ -23,17 +48,51 @@ export default function LoginPage() {
       return;
     }
 
-    if (
-      email.trim().toLowerCase() !== "admin@bijapur.cg.gov.in" ||
-      password !== "Admin@1234"
-    ) {
-      setError("ईमेल या पासवर्ड गलत है। कृपया दोबारा जांचें।");
+    setLoading(true);
+    try {
+      const result: LoginResult = await login(email.trim(), password);
+      if (result.status === "authenticated") {
+        goToNext();
+        return;
+      }
+      if (result.status === "totp_required") {
+        setPending({ kind: "totp_required", challengeToken: result.challenge_token });
+      } else {
+        setPending({
+          kind: "totp_enrollment",
+          challengeToken: result.challenge_token,
+          secret: result.totp_secret,
+          uri: result.totp_uri,
+        });
+      }
+    } catch (err) {
+      setError(
+        err instanceof ApiError && err.status === 423
+          ? "बहुत बार गलत प्रयास — खाता अस्थायी रूप से लॉक है। कुछ देर बाद पुनः प्रयास करें।"
+          : "ईमेल या पासवर्ड गलत है। कृपया दोबारा जांचें।",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerify(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!pending) return;
+    setError("");
+    if (!/^[0-9]{6}$/.test(otp.trim())) {
+      setError("कृपया 6 अंकों का कोड दर्ज करें।");
       return;
     }
-
     setLoading(true);
-    sessionStorage.setItem("sampark_authed", "1");
-    router.push("/dashboard");
+    try {
+      await verifyTwoFactor(pending.challengeToken, otp.trim());
+      goToNext();
+    } catch {
+      setError("कोड गलत है। कृपया दोबारा जांचें।");
+    } finally {
+      setLoading(false);
+    }
   }
 
   // Fixed blip positions on the radar (percent coordinates) — each
@@ -282,179 +341,305 @@ export default function LoginPage() {
               boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
             }}
           >
-            <div style={{ marginBottom: "32px" }}>
-              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#1A1D2E", marginBottom: "6px" }}>
-                लॉगिन करें
-              </h2>
-              <p style={{ fontSize: "13.5px", color: "#8B90A7" }}>
-                अपना ईमेल और पासवर्ड दर्ज करें
-              </p>
-            </div>
+            {!pending ? (
+              <>
+                <div style={{ marginBottom: "32px" }}>
+                  <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#1A1D2E", marginBottom: "6px" }}>
+                    लॉगिन करें
+                  </h2>
+                  <p style={{ fontSize: "13.5px", color: "#8B90A7" }}>
+                    अपना ईमेल और पासवर्ड दर्ज करें
+                  </p>
+                </div>
 
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "12.5px",
-                    fontWeight: 600,
-                    color: "#1A1D2E",
-                    marginBottom: "8px",
-                  }}
-                >
-                  ईमेल आईडी
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@bijapur.cg.gov.in"
-                  autoComplete="email"
-                  style={{
-                    width: "100%",
-                    padding: "11px 14px",
-                    borderRadius: "10px",
-                    border: "1.5px solid #E8EAF0",
-                    fontSize: "14px",
-                    color: "#1A1D2E",
-                    background: "#F5F6FA",
-                    outline: "none",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                    transition: "border-color 0.15s",
-                  }}
-                  onFocus={(e) => (e.currentTarget.style.borderColor = "#1DA8E0")}
-                  onBlur={(e) => (e.currentTarget.style.borderColor = "#E8EAF0")}
-                />
-              </div>
+                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        color: "#1A1D2E",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      ईमेल आईडी
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="admin@bijapur.cg.gov.in"
+                      autoComplete="email"
+                      style={{
+                        width: "100%",
+                        padding: "11px 14px",
+                        borderRadius: "10px",
+                        border: "1.5px solid #E8EAF0",
+                        fontSize: "14px",
+                        color: "#1A1D2E",
+                        background: "#F5F6FA",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        fontFamily: "inherit",
+                        transition: "border-color 0.15s",
+                      }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = "#1DA8E0")}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = "#E8EAF0")}
+                    />
+                  </div>
 
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "12.5px",
-                    fontWeight: 600,
-                    color: "#1A1D2E",
-                    marginBottom: "8px",
-                  }}
-                >
-                  पासवर्ड
-                </label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    type={showPass ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        color: "#1A1D2E",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      पासवर्ड
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        type={showPass ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        autoComplete="current-password"
+                        style={{
+                          width: "100%",
+                          padding: "11px 44px 11px 14px",
+                          borderRadius: "10px",
+                          border: "1.5px solid #E8EAF0",
+                          fontSize: "14px",
+                          color: "#1A1D2E",
+                          background: "#F5F6FA",
+                          outline: "none",
+                          boxSizing: "border-box",
+                          fontFamily: "inherit",
+                          transition: "border-color 0.15s",
+                        }}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = "#1DA8E0")}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = "#E8EAF0")}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPass(!showPass)}
+                        aria-label={showPass ? "पासवर्ड छुपाएं" : "पासवर्ड दिखाएं"}
+                        style={{
+                          position: "absolute",
+                          right: "12px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#B0B4C9",
+                          padding: "4px",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {showPass ? (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </svg>
+                        ) : (
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div
+                      style={{
+                        background: "#FDE8E8",
+                        color: "#E74C3C",
+                        borderRadius: "8px",
+                        padding: "10px 14px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
                     style={{
                       width: "100%",
-                      padding: "11px 44px 11px 14px",
+                      padding: "13px",
                       borderRadius: "10px",
-                      border: "1.5px solid #E8EAF0",
-                      fontSize: "14px",
-                      color: "#1A1D2E",
-                      background: "#F5F6FA",
-                      outline: "none",
-                      boxSizing: "border-box",
-                      fontFamily: "inherit",
-                      transition: "border-color 0.15s",
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = "#1DA8E0")}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = "#E8EAF0")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    aria-label={showPass ? "पासवर्ड छुपाएं" : "पासवर्ड दिखाएं"}
-                    style={{
-                      position: "absolute",
-                      right: "12px",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      background: "none",
                       border: "none",
-                      cursor: "pointer",
-                      color: "#B0B4C9",
-                      padding: "4px",
+                      background: loading ? "#B0B4C9" : "#1DA8E0",
+                      color: "#fff",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      cursor: loading ? "not-allowed" : "pointer",
                       display: "flex",
                       alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      transition: "background 0.15s, transform 0.1s",
+                      marginTop: "4px",
+                    }}
+                    onMouseDown={(e) => {
+                      if (!loading) e.currentTarget.style.transform = "scale(0.98)";
+                    }}
+                    onMouseUp={(e) => {
+                      e.currentTarget.style.transform = "scale(1)";
                     }}
                   >
-                    {showPass ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                        <line x1="1" y1="1" x2="23" y2="23" />
-                      </svg>
+                    {loading ? (
+                      <>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 1s linear infinite" }}>
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                        लॉगिन हो रहा है...
+                      </>
                     ) : (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
+                      <>
+                        लॉगिन करें
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                      </>
                     )}
                   </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <div style={{ marginBottom: "24px" }}>
+                  <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#1A1D2E", marginBottom: "6px" }}>
+                    सत्यापन कोड दर्ज करें
+                  </h2>
+                  <p style={{ fontSize: "13.5px", color: "#8B90A7" }}>
+                    {pending.kind === "totp_enrollment"
+                      ? "पहली बार लॉगिन — अपने Authenticator ऐप में यह कोड जोड़ें, फिर 6 अंकों का कोड दर्ज करें।"
+                      : "अपने Authenticator ऐप से 6 अंकों का कोड दर्ज करें।"}
+                  </p>
                 </div>
-              </div>
 
-              {error && (
-                <div
-                  style={{
-                    background: "#FDE8E8",
-                    color: "#E74C3C",
-                    borderRadius: "8px",
-                    padding: "10px 14px",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "13px",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: loading ? "#B0B4C9" : "#1DA8E0",
-                  color: "#fff",
-                  fontSize: "15px",
-                  fontWeight: 700,
-                  cursor: loading ? "not-allowed" : "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  transition: "background 0.15s, transform 0.1s",
-                  marginTop: "4px",
-                }}
-                onMouseDown={(e) => {
-                  if (!loading) e.currentTarget.style.transform = "scale(0.98)";
-                }}
-                onMouseUp={(e) => {
-                  e.currentTarget.style.transform = "scale(1)";
-                }}
-              >
-                {loading ? (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: "spin 1s linear infinite" }}>
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                    </svg>
-                    लॉगिन हो रहा है...
-                  </>
-                ) : (
-                  <>
-                    लॉगिन करें
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                  </>
+                {pending.kind === "totp_enrollment" && (
+                  <div
+                    style={{
+                      background: "#F5F6FA",
+                      borderRadius: "10px",
+                      padding: "14px",
+                      marginBottom: "18px",
+                      fontSize: "12px",
+                      color: "#4A4F63",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    <div style={{ fontWeight: 700, marginBottom: "4px" }}>Secret:</div>
+                    <div style={{ marginBottom: "10px" }}>{pending.secret}</div>
+                    <div style={{ fontWeight: 700, marginBottom: "4px" }}>URI:</div>
+                    <div>{pending.uri}</div>
+                  </div>
                 )}
-              </button>
-            </form>
+
+                <form onSubmit={handleVerify} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  <div>
+                    <label
+                      style={{
+                        display: "block",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        color: "#1A1D2E",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      6-अंकीय कोड
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                      style={{
+                        width: "100%",
+                        padding: "11px 14px",
+                        borderRadius: "10px",
+                        border: "1.5px solid #E8EAF0",
+                        fontSize: "18px",
+                        letterSpacing: "0.3em",
+                        textAlign: "center",
+                        color: "#1A1D2E",
+                        background: "#F5F6FA",
+                        outline: "none",
+                        boxSizing: "border-box",
+                        fontFamily: "inherit",
+                      }}
+                    />
+                  </div>
+
+                  {error && (
+                    <div
+                      style={{
+                        background: "#FDE8E8",
+                        color: "#E74C3C",
+                        borderRadius: "8px",
+                        padding: "10px 14px",
+                        fontSize: "13px",
+                        fontWeight: 500,
+                      }}
+                    >
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      width: "100%",
+                      padding: "13px",
+                      borderRadius: "10px",
+                      border: "none",
+                      background: loading ? "#B0B4C9" : "#1DA8E0",
+                      color: "#fff",
+                      fontSize: "15px",
+                      fontWeight: 700,
+                      cursor: loading ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {loading ? "सत्यापित हो रहा है..." : "सत्यापित करें"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPending(null);
+                      setOtp("");
+                      setError("");
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#8B90A7",
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      padding: "4px",
+                    }}
+                  >
+                    वापस जाएं
+                  </button>
+                </form>
+              </>
+            )}
           </div>
 
           <div style={{ textAlign: "center", marginTop: "20px" }}>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Topbar from "@/components/layout/Topbar";
 import Container from "@/components/ui/Container";
 import StatCard from "@/components/dashboard/StatCard";
@@ -5,9 +8,25 @@ import BarChart from "@/components/dashboard/BarChart";
 import CSPPerformance from "@/components/dashboard/CSPPerformance";
 import RecentReportsTable from "@/components/dashboard/RecentReportsTable";
 import ActivityFeed from "@/components/dashboard/ActivityFeed";
-import { STAT_CARDS } from "@/lib/constants";
+import { getDashboardStats, type DashboardStats } from "@/lib/api";
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    getDashboardStats()
+      .then(setStats)
+      .catch(() => setError(true));
+  }, []);
+
+  const cards: { label: string; value: string; color: "accent" | "danger" | "success" | "orange"; icon: string }[] = [
+    { label: "कुल कैडर", value: stats ? String(stats.totalCadres) : "—", color: "accent", icon: "cadres" },
+    { label: "सक्रिय अलर्ट", value: stats ? String(stats.activeAlerts) : "—", color: "danger", icon: "alerts" },
+    { label: "इस सप्ताह रिपोर्ट", value: stats ? String(stats.reportsThisWeek) : "—", color: "success", icon: "reports" },
+    { label: "लंबित रिपोर्टिंग", value: stats ? String(stats.pendingReporting) : "—", color: "orange", icon: "waiting" },
+  ];
+
   return (
     <>
       <Topbar
@@ -19,21 +38,29 @@ export default function DashboardPage() {
         <Container>
           <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
 
-            {/* Metric cards */}
+            {/* Metric cards — real /stats/dashboard data (ADR-030-scoped to the caller) */}
+            {error && (
+              <div className="card" style={{ padding: "var(--space-4)", color: "var(--rose)" }}>
+                आंकड़े लोड नहीं हो सके। कृपया पेज रीलोड करें।
+              </div>
+            )}
             <div className="stat-grid">
-              {STAT_CARDS.map((card) => (
+              {cards.map((card) => (
                 <StatCard
                   key={card.label}
                   label={card.label}
                   value={card.value}
-                  delta={card.delta}
-                  color={card.color as "accent" | "orange" | "success" | "danger"}
+                  color={card.color}
                   icon={card.icon}
                 />
               ))}
             </div>
 
-            {/* Body: main column (chart + reports) + right rail (CSP + activity) */}
+            {/* Body: main column (chart + reports) + right rail (CSP + activity).
+                These still read mock data -- there is no backend endpoint yet for
+                reporting trend series, CSP-level rollups, a "recent reports" feed,
+                or an activity log (out of Phase 1 backend scope). Not wired this
+                pass; flagged rather than silently left looking real. */}
             <div className="dash-columns">
               <div className="dash-col">
                 <BarChart />
