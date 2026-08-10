@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { listReports, type WireReport } from "@/lib/api";
@@ -25,6 +26,7 @@ const cellStyle = { padding: "var(--space-3) var(--space-2)" } as const;
 const PAGE_SIZE = 6;
 
 export default function RecentReportsTable() {
+  const router = useRouter();
   const [reports, setReports] = useState<WireReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -43,7 +45,9 @@ export default function RecentReportsTable() {
           <h3 className="t-h4">हाल की रिपोर्ट</h3>
           <p className="t-caption" style={{ marginTop: "2px" }}>अद्यतन गतिविधि</p>
         </div>
-        <Button variant="secondary" size="sm">सभी देखें</Button>
+        <Button variant="secondary" size="sm" onClick={() => router.push("/records")}>
+          सभी देखें
+        </Button>
       </div>
 
       {error && (

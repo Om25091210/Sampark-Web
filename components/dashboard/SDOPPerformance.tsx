@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText } from "lucide-react";
+import { Target, AlertCircle } from "lucide-react";
 import { getHierarchyStats, type HierarchyStats } from "@/lib/api";
 
 // ADR-055: HQ (super_admin) gets one row per SDOP (level "admins"); an SDOP
@@ -71,53 +71,63 @@ export default function SDOPPerformance() {
         </div>
       </div>
 
-      {/* Monthly Report strip (deep neutral accent card). Still mock -- no
-          org-wide "reports this month" stat exists (DashboardStats only has
-          reportsThisWeek), so there's nothing real to wire this to yet. */}
-      <div
-        style={{
-          background: "var(--navy)",
-          borderRadius: "var(--radius-xl)",
-          padding: "var(--space-5)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
-          <span
-            style={{
-              width: 40,
-              height: 40,
-              background: "rgba(14,165,196,0.18)",
-              borderRadius: "var(--radius-lg)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--brand)",
-              flexShrink: 0,
-            }}
-          >
-            <FileText size={18} strokeWidth={1.75} />
-          </span>
-          <div>
-            <div style={{ color: "var(--on-dark)", fontSize: "0.8125rem", fontWeight: 600 }}>
-              माह की रिपोर्ट
+      {/* Rollup strip (deep neutral accent card) -- the SAME totals the rows
+          above are built from (totalCurrent/totalAssigned/overallCompletion,
+          ADR-055's aggregate ratio, never an average of the rows' own
+          percentages), plus unassignedCadres -- a staffing gap the rows above
+          cannot show since a row only exists per assigned officer/SDOP. */}
+      {stats && (
+        <div
+          style={{
+            background: "var(--navy)",
+            borderRadius: "var(--radius-xl)",
+            padding: "var(--space-5)",
+            display: "flex",
+            flexDirection: "column",
+            gap: stats.unassignedCadres > 0 ? "var(--space-4)" : 0,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+              <span
+                style={{
+                  width: 40,
+                  height: 40,
+                  background: "rgba(14,165,196,0.18)",
+                  borderRadius: "var(--radius-lg)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--brand)",
+                  flexShrink: 0,
+                }}
+              >
+                <Target size={18} strokeWidth={1.75} />
+              </span>
+              <div>
+                <div style={{ color: "var(--on-dark)", fontSize: "0.8125rem", fontWeight: 600 }}>
+                  समग्र रिपोर्टिंग पूर्णता
+                </div>
+                <div className="tabular-nums" style={{ color: "var(--on-dark-faint)", fontSize: "0.6875rem" }}>
+                  {stats.totalCurrent} / {stats.totalAssigned} कैडर अद्यतन
+                </div>
+              </div>
             </div>
-            <div style={{ color: "var(--on-dark-faint)", fontSize: "0.6875rem" }}>
-              इस माह सबमिट की गईं
+            <div className="tabular-nums" style={{ color: "var(--brand)", fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
+              {stats.overallCompletion}%
             </div>
           </div>
+
+          {stats.unassignedCadres > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--on-dark-border)" }}>
+              <AlertCircle size={14} strokeWidth={2} color="var(--amber)" />
+              <span style={{ color: "var(--on-dark-muted)", fontSize: "0.75rem" }}>
+                <span className="tabular-nums" style={{ color: "var(--amber)", fontWeight: 700 }}>{stats.unassignedCadres}</span> कैडर किसी अधिकारी को नियत नहीं
+              </span>
+            </div>
+          )}
         </div>
-        <div style={{ textAlign: "right" }}>
-          <div className="tabular-nums" style={{ color: "var(--brand)", fontSize: "1.5rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
-            156
-          </div>
-          <div style={{ color: "var(--on-dark-faint)", fontSize: "0.625rem" }}>
-            +12% से पिछले माह
-          </div>
-        </div>
-      </div>
+      )}
     </>
   );
 }

@@ -17,10 +17,16 @@ deployment URL, via `GET`/`PATCH /config` — plus a read-only sync status panel
 /config/sync-log`, last-successful-sync-per-type + recent activity, `super_admin`-only, same real
 403 gate as `/users`). **The shared-secret sync credential is never entered, displayed, or
 reachable from this page or any other web endpoint** — hand-provisioned into Secrets Manager only,
-per ADR-059 §2; do not add a credential field to this page. The reporting-trend chart, CSP rollup,
-recent-reports table, activity feed, officers/tracker/notifications/profile pages, and the
-hierarchy drill-down remain **mock/unwired** — most have no backend endpoint yet (activity feed,
-leaderboard, deeper analytics are out of Phase 1 backend scope).
+per ADR-059 §2; do not add a credential field to this page. As of this dashboard rework, **every
+`/dashboard` widget is wired to a real endpoint**: the 4 top cards and the recency bar chart share
+one `GET /stats/dashboard` fetch; the recent-reports table reads `GET /reports`; the approval-ladder
+widget (`ApprovalQueue`) reads/acts on `GET /changes?awaitingMe=true` + `POST /changes/:id/approve`|
+`reject` (ADR-026); the hierarchy panel (`SDOPPerformance`) reads `GET /stats/hierarchy` (ADR-055).
+The mock "लाइव गतिविधि" feed and the fabricated "माह की रिपोर्ट" figure were removed outright — no
+backing endpoint existed for either. `officers`/`tracker`/`notifications`/`profile` pages and the
+`/stats/hierarchy` drill-down beyond the dashboard panel remain **mock/unwired** — no backend
+endpoint yet for a cross-domain activity log or leaderboard; those stay out of Phase 1 backend
+scope.
 
 ## Stack (do not change without instruction)
 

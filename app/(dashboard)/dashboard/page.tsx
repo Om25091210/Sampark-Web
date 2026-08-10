@@ -7,7 +7,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import BarChart from "@/components/dashboard/BarChart";
 import SDOPPerformance from "@/components/dashboard/SDOPPerformance";
 import RecentReportsTable from "@/components/dashboard/RecentReportsTable";
-import ActivityFeed from "@/components/dashboard/ActivityFeed";
+import ApprovalQueue from "@/components/dashboard/ApprovalQueue";
 import { getDashboardStats, type DashboardStats } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -56,22 +56,21 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Body: main column (chart + reports) + right rail (SDOP + activity).
-                RecentReportsTable (GET /reports) and SDOPPerformance
-                (GET /stats/hierarchy) are wired to real data. BarChart's monthly
-                tasks-vs-reports trend and ActivityFeed's cross-domain live feed
-                have no backing endpoint (no org-wide time-series stat, no unified
-                activity log across reports/changes/contact-updates) -- out of
-                Phase 1 backend scope, so both stay mock. Flagged, not silently
-                left looking real. */}
+            {/* Body: main column (recency chart + recent reports) + right rail
+                (approval ladder + hierarchy performance) -- every widget here is
+                wired to a real endpoint: BarChart and the top cards share the
+                one GET /stats/dashboard fetch above; RecentReportsTable reads
+                GET /reports; ApprovalQueue reads/acts on GET+POST /changes
+                (ADR-026 approval ladder); SDOPPerformance reads GET
+                /stats/hierarchy (ADR-055). Nothing on this page is mock data. */}
             <div className="dash-columns">
               <div className="dash-col">
-                <BarChart />
+                <BarChart stats={stats} error={error} />
                 <RecentReportsTable />
               </div>
               <div className="dash-col">
+                <ApprovalQueue />
                 <SDOPPerformance />
-                <ActivityFeed />
               </div>
             </div>
           </div>

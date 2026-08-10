@@ -96,6 +96,15 @@ export interface DashboardStats {
   activeAlerts: number;
   reportsThisWeek: number;
   pendingReporting: number;
+  // ADR-041/046. The 4 reporting-recency tiers as counts that PARTITION every
+  // live cadre in scope by days since their latest report; the four sum to
+  // totalCadres. सामान्य/सतर्क/जोखिम/उच्च जोखिम.
+  reportingRecency: {
+    current: number;
+    overdue1m: number;
+    overdue2m: number;
+    overdue3m: number;
+  };
   byCategory: {
     surrendered: { district: number; other: number; total: number };
     thana: number;
@@ -491,6 +500,72 @@ export async function setUserPassword(userId: number, password: string): Promise
 
 export async function deactivateUser(userId: number): Promise<void> {
   return apiFetch<void>(`/users/${userId}`, { method: "DELETE" });
+}
+
+// ─── Cadre changes (approval ladder, ADR-026/027/028) ────────────────────────
+
+export interface WireChangeCadre {
+  id: number;
+  name: string;
+  serialNumber?: string;
+}
+
+export interface WireChangeSubmitter {
+  id: number;
+  name: string;
+  role: WireUser["role"];
+}
+
+export interface WireChangeFieldDiff {
+  old: unknown;
+  new: unknown;
+}
+
+export interface WireCadreChange {
+  id: number;
+  cadreId: number;
+  cadre?: WireChangeCadre;
+  changes: Record<string, WireChangeFieldDiff>;
+  submittedBy: WireChangeSubmitter;
+  submittedAt: string;
+  note?: string;
+  status: "pending" | "applied" | "rejected" | "cancelled" | "stale";
+  needsAdmin: boolean;
+  needsSuperAdmin: boolean;
+  awaitingRole: "admin" | "super_admin" | null;
+}
+
+export interface ListCadreChangesParams {
+  status?: WireCadreChange["status"];
+  submittedBy?: string | number;
+  cadreId?: number;
+  /** The approver queue: only what the caller can act on next. */
+  awaitingMe?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listCadreChanges(
+  params: ListCadreChangesParams,
+): Promise<PaginatedResponse<WireCadreChange>> {
+  return apiFetch<PaginatedResponse<WireCadreChange>>("/changes", {
+    query: {
+      status: params.status,
+      submittedBy: params.submittedBy !== undefined ? String(params.submittedBy) : undefined,
+      cadreId: params.cadreId,
+      awaitingMe: params.awaitingMe ? "true" : undefined,
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  });
+}
+
+export async function approveCadreChange(id: number): Promise<WireCadreChange> {
+  return apiFetch<WireCadreChange>(`/changes/${id}/approve`, { method: "POST" });
+}
+
+export async function rejectCadreChange(id: number, reason: string): Promise<WireCadreChange> {
+  return apiFetch<WireCadreChange>(`/changes/${id}/reject`, { method: "POST", body: { reason } });
 }
 
 // ─── Config (Phase 6 — Configuration page, super_admin only, ADR-059) ───────────
