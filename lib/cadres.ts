@@ -46,6 +46,40 @@ export const ALERT_META: Record<AlertLevel, { label: string; color: string; soft
   normal: { label: "सामान्य", color: "var(--emerald)", soft: "var(--emerald-soft)" },
 };
 
+// ─── Profile-only fields (mirrors mobile's src/constants/priority.ts,
+// src/constants/permanentStatus.ts, src/types/index.ts's HARDCOPY_DOCS) ───────
+
+export type PriorityCategory = "A" | "B" | "C" | "jail" | "death";
+export type PermanentStatus = "deceased" | "government_job" | "gs" | "living_elsewhere";
+
+// ADR-046. The register's कैटेगरी grade — a surrender risk tier, distinct from
+// alertLevel. jail/death carry no reporting cadence and never alarm.
+export const PRIORITY: Record<PriorityCategory, { label: string; color: string; soft: string }> = {
+  A: { label: "A", color: "var(--rose)", soft: "var(--rose-soft)" },
+  B: { label: "B", color: "var(--amber)", soft: "var(--amber-soft)" },
+  C: { label: "C", color: "var(--emerald)", soft: "var(--emerald-soft)" },
+  jail: { label: "जेल", color: "var(--text-tertiary)", soft: "var(--surface-hover)" },
+  death: { label: "मृत", color: "var(--text-tertiary)", soft: "var(--surface-hover)" },
+};
+
+export const PERMANENT_STATUS_LABELS: Record<PermanentStatus, string> = {
+  deceased: "फौत",
+  government_job: "शासकीय नौकरी",
+  gs: "GS",
+  living_elsewhere: "अन्य जिले में निवासरत",
+};
+
+// ADR-029. The four hardcopy documents, in the fixed order the profile lists them.
+export const HARDCOPY_DOCS: {
+  key: "hasAadhaar" | "hasBankAccount" | "hasAbProforma" | "hasAgreementLetter";
+  label: string;
+}[] = [
+  { key: "hasAadhaar", label: "आधार कार्ड" },
+  { key: "hasBankAccount", label: "बैंक खाता" },
+  { key: "hasAbProforma", label: "AB प्रोफार्मा" },
+  { key: "hasAgreementLetter", label: "अनुबंध पत्र" },
+];
+
 // ─── Alert tag derivation (mirrors CadreCard.initialTag) ──────────────────────
 
 const CRITICAL_TAGS = ["उल्लंघन", "तत्काल", "लापता", "सक्रिय अलर्ट"];

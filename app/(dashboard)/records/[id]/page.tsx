@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import Link from "next/link";
 import Topbar from "@/components/layout/Topbar";
 import Container from "@/components/ui/Container";
 import Badge from "@/components/ui/Badge";
@@ -143,14 +144,19 @@ export default function CadreReportingRecordPage({ params }: { params: Promise<{
                     {cadre.thana} · {cadre.designation}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: "var(--space-2)", flexShrink: 0 }}>
-                  <span className="badge badge--brand">{CATEGORY_CHIP[cadre.category]}</span>
-                  {tag && (
-                    <span className="badge" style={{ background: accent.soft, color: accent.color }}>
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: accent.color }} />
-                      {tag}
-                    </span>
-                  )}
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "var(--space-2)", flexShrink: 0 }}>
+                  <Link href={`/records/${cadreId}/profile`} className="btn btn--secondary btn--sm" style={{ textDecoration: "none" }}>
+                    प्रोफाइल देखें
+                  </Link>
+                  <div style={{ display: "flex", gap: "var(--space-2)" }}>
+                    <span className="badge badge--brand">{CATEGORY_CHIP[cadre.category]}</span>
+                    {tag && (
+                      <span className="badge" style={{ background: accent.soft, color: accent.color }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: accent.color }} />
+                        {tag}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             ) : (

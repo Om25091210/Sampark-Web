@@ -143,14 +143,51 @@ export interface WireCadre {
   phone: string;
   thana: string;
   currentAddress: string;
+  permanentAddress?: string;
+  residingVillage?: string;
   designation: string;
   category: "surrendered" | "thana" | "jail";
+  priorityCategory?: "A" | "B" | "C" | "jail" | "death";
+  permanentStatus?: "deceased" | "government_job" | "gs" | "living_elsewhere";
   alertLevel: "critical" | "warning" | "normal";
+  alertDate?: string;
+  incident?: string;
+  verificationOffice?: string;
+  supervisoryOffice?: string;
   alertTag?: string;
   aliases: string[];
   avatarUrl?: string;
+  /** ADR-054. Two more independent photo slots, never a fallback for avatarUrl. */
+  avatarUrl2?: string;
+  avatarUrl3?: string;
   assignedOfficerId?: number;
+  surrenderDate?: string;
+  surrenderLocation?: string;
   surrenderOrigin?: "district" | "other";
+  surrenderYear?: string;
+  regiment?: string;
+  familyGroupInfo?: string;
+  subDivision?: string;
+  district?: string;
+  dateOfBirth?: string;
+  /** Derived server-side from dateOfBirth — never proposed directly. */
+  age?: number;
+  fatherName?: string;
+  motherName?: string;
+  spouseName?: string;
+  gender?: string;
+  caste?: string;
+  hasAadhaar?: boolean;
+  hasBankAccount?: boolean;
+  hasAbProforma?: boolean;
+  hasAgreementLetter?: boolean;
+  nextReportingDueAt?: string;
+  /** ADR-023. Latest report's date — absent when the cadre has never reported. */
+  lastReportedAt?: string;
+  /** ADR-027. Always sent by the API — empty array means nothing pending. */
+  pendingFields?: string[];
+  lastEditedAt?: string;
+  lastEditedBy?: { id: number; name: string };
 }
 
 export interface PaginatedResponse<T> {
