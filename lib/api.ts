@@ -519,6 +519,14 @@ export interface WireChangeSubmitter {
 export interface WireChangeFieldDiff {
   old: unknown;
   new: unknown;
+  /** ADR-029. Present only for avatarKey/2/3 -- signed preview URLs for the diff. */
+  oldUrl?: string;
+  newUrl?: string;
+}
+
+export interface WireApprovedBy {
+  id: number;
+  name: string;
 }
 
 export interface WireCadreChange {
@@ -532,6 +540,12 @@ export interface WireCadreChange {
   status: "pending" | "applied" | "rejected" | "cancelled" | "stale";
   needsAdmin: boolean;
   needsSuperAdmin: boolean;
+  adminApprovedBy?: WireApprovedBy;
+  adminApprovedAt?: string;
+  superAdminApprovedBy?: WireApprovedBy;
+  superAdminApprovedAt?: string;
+  decidedAt?: string;
+  decidedReason?: string;
   awaitingRole: "admin" | "super_admin" | null;
 }
 
@@ -566,6 +580,110 @@ export async function approveCadreChange(id: number): Promise<WireCadreChange> {
 
 export async function rejectCadreChange(id: number, reason: string): Promise<WireCadreChange> {
   return apiFetch<WireCadreChange>(`/changes/${id}/reject`, { method: "POST", body: { reason } });
+}
+
+// ─── Cadre CREATE requests (new cadre, same ADR-026/027/028 ladder) ──────────
+//
+// A whole new record proposed by an officer/admin, not an edit to an existing
+// one -- flat resource, no cadreId yet. Same two-rung approval chain as
+// cadre-changes, but the payload is a full draft rather than a field diff.
+
+export interface WireCadreDraft {
+  name: string;
+  phone: string;
+  thana: string;
+  currentAddress: string;
+  designation: string;
+  category: "surrendered" | "thana" | "jail";
+  permanentAddress?: string | null;
+  residingVillage?: string | null;
+  verificationOffice?: string | null;
+  supervisoryOffice?: string | null;
+  incident?: string | null;
+  surrenderLocation?: string | null;
+  surrenderYear?: string | null;
+  surrenderDate?: string | null;
+  surrenderOrigin?: "district" | "other" | null;
+  familyGroupInfo?: string | null;
+  subDivision?: string | null;
+  district?: string | null;
+  gender?: "male" | "female" | null;
+  caste?: string | null;
+  dateOfBirth?: string | null;
+  fatherName?: string | null;
+  motherName?: string | null;
+  spouseName?: string | null;
+  priorityCategory?: "A" | "B" | "C" | "jail" | "death" | null;
+  hasAadhaar: boolean;
+  hasBankAccount: boolean;
+  hasAbProforma: boolean;
+  hasAgreementLetter: boolean;
+  avatarKey?: string | null;
+  avatarKey2?: string | null;
+  avatarKey3?: string | null;
+  /** Signed preview URLs for whichever avatarKey slots are set (ADR-029). */
+  avatarUrl?: string;
+  avatarUrl2?: string;
+  avatarUrl3?: string;
+}
+
+export interface WireDuplicateWarning {
+  cadres: { id: number; name: string; serialNumber: string | null; thana: string }[];
+  createRequests: { id: number; name: string; submittedBy: string }[];
+}
+
+export interface WireCadreCreateRequest {
+  id: number;
+  draft: WireCadreDraft;
+  submittedBy: WireChangeSubmitter;
+  submittedAt: string;
+  note?: string;
+  status: "pending" | "applied" | "rejected" | "cancelled";
+  needsAdmin: boolean;
+  needsSuperAdmin: boolean;
+  adminApprovedBy?: WireApprovedBy;
+  adminApprovedAt?: string;
+  superAdminApprovedBy?: WireApprovedBy;
+  superAdminApprovedAt?: string;
+  decidedAt?: string;
+  decidedReason?: string;
+  awaitingRole?: "admin" | "super_admin";
+  cadreId?: number;
+  /** Non-blocking -- a possible duplicate match, never prevents submission/approval. */
+  duplicateWarning?: WireDuplicateWarning;
+}
+
+export interface ListCadreCreateRequestsParams {
+  status?: WireCadreCreateRequest["status"];
+  submittedBy?: string | number;
+  awaitingMe?: boolean;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listCadreCreateRequests(
+  params: ListCadreCreateRequestsParams,
+): Promise<PaginatedResponse<WireCadreCreateRequest>> {
+  return apiFetch<PaginatedResponse<WireCadreCreateRequest>>("/cadre-create-requests", {
+    query: {
+      status: params.status,
+      submittedBy: params.submittedBy !== undefined ? String(params.submittedBy) : undefined,
+      awaitingMe: params.awaitingMe ? "true" : undefined,
+      page: params.page,
+      pageSize: params.pageSize,
+    },
+  });
+}
+
+export async function approveCadreCreateRequest(id: number): Promise<WireCadreCreateRequest> {
+  return apiFetch<WireCadreCreateRequest>(`/cadre-create-requests/${id}/approve`, { method: "POST" });
+}
+
+export async function rejectCadreCreateRequest(id: number, reason: string): Promise<WireCadreCreateRequest> {
+  return apiFetch<WireCadreCreateRequest>(`/cadre-create-requests/${id}/reject`, {
+    method: "POST",
+    body: { reason },
+  });
 }
 
 // ─── Config (Phase 6 — Configuration page, super_admin only, ADR-059) ───────────

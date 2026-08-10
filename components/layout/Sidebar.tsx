@@ -14,6 +14,7 @@ import {
   Crosshair,
   Bell,
   LogOut,
+  ClipboardCheck,
 } from "lucide-react";
 import { logout, getRole } from "@/lib/api";
 
@@ -21,6 +22,7 @@ const ICON_PROPS = { size: 18, strokeWidth: 1.75 } as const;
 
 const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "डैशबोर्ड", badge: null, icon: <LayoutGrid {...ICON_PROPS} /> },
+  { href: "/approvals", label: "स्वीकृति अनुरोध", badge: null, icon: <ClipboardCheck {...ICON_PROPS} /> },
   { href: "/records", label: "रिपोर्टिंग रिकॉर्ड", badge: "12", icon: <FileText {...ICON_PROPS} /> },
   { href: "/records/analytics", label: "रिपोर्ट विश्लेषण", badge: null, icon: <BarChart3 {...ICON_PROPS} /> },
   { href: "/profile", label: "प्रोफाइल", badge: null, icon: <User {...ICON_PROPS} /> },
