@@ -386,6 +386,72 @@ export async function getCadre(id: number): Promise<WireCadre> {
   return apiFetch<WireCadre>(`/cadres/${id}`);
 }
 
+// ADR-018. Reassign a cadre to another officer (admin+ — every web session is,
+// per ADR-042/056, so this is never role-gated on this client).
+export async function transferCadre(cadreId: number, toOfficerId: number): Promise<void> {
+  await apiFetch<void>(`/cadres/${cadreId}/transfer`, {
+    method: "POST",
+    body: { to_officer_id: toOfficerId },
+  });
+}
+
+// ADR-026. Every cadre field EXCEPT tags/aliases (which write direct, see
+// patchCadreDirect below) and the three avatar slots (web does not offer photo
+// upload — mirrors mobile's ChangeableFields minus avatarKey/2/3).
+export interface ChangeableCadreFields {
+  name?: string;
+  phone?: string;
+  thana?: string;
+  currentAddress?: string;
+  permanentAddress?: string | null;
+  residingVillage?: string | null;
+  designation?: string;
+  incident?: string | null;
+  verificationOffice?: string | null;
+  supervisoryOffice?: string | null;
+  surrenderDate?: string | null;
+  surrenderLocation?: string | null;
+  surrenderOrigin?: "district" | "other" | null;
+  surrenderYear?: string | null;
+  familyGroupInfo?: string | null;
+  subDivision?: string | null;
+  district?: string | null;
+  dateOfBirth?: string | null;
+  fatherName?: string | null;
+  motherName?: string | null;
+  spouseName?: string | null;
+  gender?: "male" | "female" | null;
+  caste?: string | null;
+  priorityCategory?: "A" | "B" | "C" | "jail" | "death" | null;
+  permanentStatus?: "deceased" | "government_job" | "gs" | "living_elsewhere" | null;
+  hasAadhaar?: boolean;
+  hasBankAccount?: boolean;
+  hasAbProforma?: boolean;
+  hasAgreementLetter?: boolean;
+}
+
+// Officer/admin → queued for approval; super_admin → applied immediately (still
+// recorded, status `applied`). Same call either way — the backend decides which,
+// the caller reads `status` off the response to know which happened.
+export async function submitCadreChange(
+  cadreId: number,
+  payload: { changes: ChangeableCadreFields; note?: string },
+): Promise<WireCadreChange> {
+  return apiFetch<WireCadreChange>(`/cadres/${cadreId}/changes`, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// ADR-026 direct write — tags/aliases ONLY, no approval. Every other field must
+// go through submitCadreChange.
+export async function patchCadreDirect(
+  cadreId: number,
+  body: { alertTag?: string | null; aliases?: string[] },
+): Promise<void> {
+  await apiFetch<void>(`/cadres/${cadreId}`, { method: "PATCH", body });
+}
+
 // ─── Officers (admin+) ────────────────────────────────────────────────────────
 
 export interface WireOfficer extends WireUser {

@@ -80,6 +80,36 @@ export const HARDCOPY_DOCS: {
   { key: "hasAgreementLetter", label: "अनुबंध पत्र" },
 ];
 
+// ─── Edit-form reference lists (mirrors mobile's src/constants/cadreFieldOptions.ts) ──
+
+// ADR-040. The 7 districts of the Bastar region.
+export const DISTRICTS = ["बीजापुर", "नारायणपुर", "दंतेवाड़ा", "सुकमा", "बस्तर", "कांकेर", "कोंडागांव"];
+
+// The 9 official SDOP sub-divisions of SP Bijapur.
+export const SUB_DIVISIONS = [
+  "बीजापुर", "भोपालपटनम", "कुटरू", "फरसेगढ़", "भैरमगढ़", "आवापल्ली", "पामेड़", "बासागुड़ा", "गंगालूर",
+];
+
+// ADR-046 §2 / ADR-053. The edit form's wording for this select — deliberately
+// distinct from PRIORITY's short badge label ("A" / "मृत") above.
+export const PRIORITY_CATEGORY_OPTION_LABELS: Record<PriorityCategory, string> = {
+  A: "श्रेणी A",
+  B: "श्रेणी B",
+  C: "श्रेणी C",
+  jail: "जेल",
+  death: "मृत्यु",
+};
+
+// ADR-038 / ADR-053.
+export const GENDER_LABELS: Record<"male" | "female", string> = { male: "पुरुष", female: "महिला" };
+
+// ADR-019 / ADR-053. The SurrenderOrigin wire value — distinct from the
+// `district` cadre field (home district) above; same word, two meanings.
+export const SURRENDER_ORIGIN_LABELS: Record<"district" | "other", string> = {
+  district: "बीजापुर जिला",
+  other: "अन्य जिला/राज्य",
+};
+
 // ─── Alert tag derivation (mirrors CadreCard.initialTag) ──────────────────────
 
 const CRITICAL_TAGS = ["उल्लंघन", "तत्काल", "लापता", "सक्रिय अलर्ट"];
