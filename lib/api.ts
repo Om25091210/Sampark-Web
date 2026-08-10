@@ -321,6 +321,8 @@ export interface ListCadresParams {
   search?: string;
   thana?: string[];
   alertLevel?: string[];
+  /** Dashboard "लंबित रिपोर्टिंग" tile drill-down — no live report in the last 30 days. */
+  pendingReporting?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -332,6 +334,7 @@ export async function listCadres(params: ListCadresParams): Promise<PaginatedRes
       search: params.search,
       thana: params.thana,
       alertLevel: params.alertLevel,
+      pendingReporting: params.pendingReporting ? "true" : undefined,
       page: params.page,
       pageSize: params.pageSize,
     },
@@ -404,6 +407,8 @@ export interface WireReport {
 export interface ListReportsParams {
   reportedBy?: string | number;
   search?: string;
+  /** Dashboard "इस सप्ताह रिपोर्ट" tile drill-down — reports on/after this ISO instant. */
+  reportedAfter?: string;
   page?: number;
   pageSize?: number;
 }
@@ -413,6 +418,7 @@ export async function listReports(params: ListReportsParams): Promise<PaginatedR
     query: {
       reportedBy: params.reportedBy !== undefined ? String(params.reportedBy) : undefined,
       search: params.search,
+      reportedAfter: params.reportedAfter,
       page: params.page,
       pageSize: params.pageSize,
     },

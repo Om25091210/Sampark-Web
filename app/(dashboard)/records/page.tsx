@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Topbar from "@/components/layout/Topbar";
 import FilterPanel from "@/components/records/FilterPanel";
 import ReportList from "@/components/records/ReportList";
@@ -16,7 +17,26 @@ import {
 const PAGE_SIZE = 25;
 
 export default function RecordsPage() {
-  const [filters, setFilters] = useState<RecordFilters>(EMPTY_FILTERS);
+  return (
+    <Suspense fallback={null}>
+      <RecordsPageInner />
+    </Suspense>
+  );
+}
+
+function RecordsPageInner() {
+  // Dashboard tile drill-down (?alertLevel=critical / ?pendingReporting=true) --
+  // read once on mount, never again, so the URL only seeds the initial view and
+  // subsequent in-page filter changes don't fight over it.
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState<RecordFilters>(() => {
+    const alertLevel = searchParams.get("alertLevel");
+    return {
+      ...EMPTY_FILTERS,
+      alertLevel: alertLevel === "critical" || alertLevel === "warning" || alertLevel === "normal" ? alertLevel : "all",
+      pendingReporting: searchParams.get("pendingReporting") === "true",
+    };
+  });
   const [cadres, setCadres] = useState<WireCadre[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -43,6 +63,7 @@ export default function RecordsPage() {
         category: filters.category.length > 0 ? filters.category : undefined,
         alertLevel: filters.alertLevel !== "all" ? [filters.alertLevel] : undefined,
         thana: filters.thana.length > 0 ? filters.thana : undefined,
+        pendingReporting: filters.pendingReporting || undefined,
         search: filters.search || undefined,
         page: 1,
         pageSize: PAGE_SIZE,
@@ -73,6 +94,7 @@ export default function RecordsPage() {
       category: filters.category.length > 0 ? filters.category : undefined,
       alertLevel: filters.alertLevel !== "all" ? [filters.alertLevel] : undefined,
       thana: filters.thana.length > 0 ? filters.thana : undefined,
+      pendingReporting: filters.pendingReporting || undefined,
       search: filters.search || undefined,
       page: nextPage,
       pageSize: PAGE_SIZE,
@@ -88,6 +110,8 @@ export default function RecordsPage() {
   const setSearch = (search: string) => setFilters((f) => ({ ...f, search }));
   const setAlertLevel = (alertLevel: AlertLevel | "all") =>
     setFilters((f) => ({ ...f, alertLevel }));
+  const setPendingReporting = (pendingReporting: boolean) =>
+    setFilters((f) => ({ ...f, pendingReporting }));
 
   const toggle = (group: "category" | "thana", value: string) =>
     setFilters((f) => {
@@ -121,6 +145,8 @@ export default function RecordsPage() {
             total={total}
             alertLevel={filters.alertLevel}
             onAlertLevel={setAlertLevel}
+            pendingReporting={filters.pendingReporting}
+            onPendingReporting={setPendingReporting}
           />
           {hasMore && (
             <div style={{ padding: "var(--space-4)", textAlign: "center" }}>

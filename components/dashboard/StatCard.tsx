@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   ClipboardList,
   Clock,
@@ -22,6 +23,8 @@ interface StatCardProps {
   delta?: string;
   color: ColorKey;
   icon: string;
+  /** When set, the whole card links to the filtered view this number represents. */
+  href?: string;
 }
 
 /** Soft pastel bg + darker foreground icon per status. */
@@ -42,7 +45,7 @@ const ICONS: Record<string, LucideIcon> = {
   reports: FileText,
 };
 
-export default function StatCard({ label, value, delta, color, icon }: StatCardProps) {
+export default function StatCard({ label, value, delta, color, icon, href }: StatCardProps) {
   const tone = TONES[color];
   const Icon = ICONS[icon] ?? ClipboardList;
   const isPositive = delta?.startsWith("+") ?? false;
@@ -53,10 +56,11 @@ export default function StatCard({ label, value, delta, color, icon }: StatCardP
       ? "var(--rose)"
       : "var(--text-tertiary)";
 
-  return (
+  const card = (
     <Card
       padding="lg"
       elevated
+      interactive={Boolean(href)}
       style={{ borderRadius: "var(--radius-xl)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}
     >
       {/* Label + icon */}
@@ -111,5 +115,13 @@ export default function StatCard({ label, value, delta, color, icon }: StatCardP
         </div>
       )}
     </Card>
+  );
+
+  if (!href) return card;
+
+  return (
+    <Link href={href} style={{ textDecoration: "none", display: "block" }}>
+      {card}
+    </Link>
   );
 }

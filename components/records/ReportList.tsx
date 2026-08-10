@@ -8,6 +8,8 @@ interface ReportListProps {
   total: number;
   alertLevel: AlertLevel | "all";
   onAlertLevel: (value: AlertLevel | "all") => void;
+  pendingReporting: boolean;
+  onPendingReporting: (value: boolean) => void;
 }
 
 const TABS: { value: AlertLevel | "all"; label: string }[] = [
@@ -15,7 +17,14 @@ const TABS: { value: AlertLevel | "all"; label: string }[] = [
   ...ALERT_LEVELS,
 ];
 
-export default function ReportList({ cadres, total, alertLevel, onAlertLevel }: ReportListProps) {
+export default function ReportList({
+  cadres,
+  total,
+  alertLevel,
+  onAlertLevel,
+  pendingReporting,
+  onPendingReporting,
+}: ReportListProps) {
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto", background: "var(--bg)" }}>
       {/* Sticky header */}
@@ -65,6 +74,28 @@ export default function ReportList({ cadres, total, alertLevel, onAlertLevel }: 
               </button>
             );
           })}
+
+          {/* लंबित रिपोर्टिंग drill-down (dashboard tile), independent of alertLevel */}
+          <button
+            onClick={() => onPendingReporting(!pendingReporting)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "var(--space-1)",
+              padding: "5px var(--space-3)",
+              borderRadius: "var(--radius-full)",
+              border: "1.5px solid",
+              borderColor: pendingReporting ? "var(--amber)" : "var(--border)",
+              background: pendingReporting ? "var(--amber-soft)" : "var(--surface)",
+              color: pendingReporting ? "var(--amber)" : "var(--text-secondary)",
+              fontSize: "0.8125rem",
+              fontWeight: pendingReporting ? 600 : 400,
+              cursor: "pointer",
+              transition: "var(--transition)",
+            }}
+          >
+            लंबित रिपोर्टिंग
+          </button>
         </div>
       </div>
 

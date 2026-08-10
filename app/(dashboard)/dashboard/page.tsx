@@ -20,11 +20,16 @@ export default function DashboardPage() {
       .catch(() => setError(true));
   }, []);
 
-  const cards: { label: string; value: string; color: "accent" | "danger" | "success" | "orange"; icon: string }[] = [
-    { label: "कुल कैडर", value: stats ? String(stats.totalCadres) : "—", color: "accent", icon: "cadres" },
-    { label: "सक्रिय अलर्ट", value: stats ? String(stats.activeAlerts) : "—", color: "danger", icon: "alerts" },
-    { label: "इस सप्ताह रिपोर्ट", value: stats ? String(stats.reportsThisWeek) : "—", color: "success", icon: "reports" },
-    { label: "लंबित रिपोर्टिंग", value: stats ? String(stats.pendingReporting) : "—", color: "orange", icon: "waiting" },
+  // Each card links to the exact filtered view backing its number, so the tile's
+  // count and its drill-down list length can never drift apart (see backend's
+  // recencyTierWhere / pendingReportingWhere shared-where-clause pattern). /reports
+  // computes its own 7-day cutoff when no `since` is given, so no timestamp needs
+  // to be generated here at render time.
+  const cards: { label: string; value: string; color: "accent" | "danger" | "success" | "orange"; icon: string; href: string }[] = [
+    { label: "कुल कैडर", value: stats ? String(stats.totalCadres) : "—", color: "accent", icon: "cadres", href: "/records" },
+    { label: "सक्रिय अलर्ट", value: stats ? String(stats.activeAlerts) : "—", color: "danger", icon: "alerts", href: "/records?alertLevel=critical" },
+    { label: "इस सप्ताह रिपोर्ट", value: stats ? String(stats.reportsThisWeek) : "—", color: "success", icon: "reports", href: "/reports" },
+    { label: "लंबित रिपोर्टिंग", value: stats ? String(stats.pendingReporting) : "—", color: "orange", icon: "waiting", href: "/records?pendingReporting=true" },
   ];
 
   return (
@@ -32,6 +37,7 @@ export default function DashboardPage() {
       <Topbar
         title="प्रदर्शन डैशबोर्ड"
         subtitle="बीजापुर पुलिस — आज का अवलोकन"
+        showSearch={false}
       />
 
       <div style={{ paddingBlock: "var(--space-8)" }}>
@@ -52,6 +58,7 @@ export default function DashboardPage() {
                   value={card.value}
                   color={card.color}
                   icon={card.icon}
+                  href={card.href}
                 />
               ))}
             </div>

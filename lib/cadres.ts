@@ -88,6 +88,8 @@ export interface RecordFilters {
   alertLevel: AlertLevel | "all";
   category: CadreCategory[];
   thana: string[];
+  /** Dashboard "लंबित रिपोर्टिंग" tile drill-down — web-only, not mirrored from mobile. */
+  pendingReporting: boolean;
 }
 
 export const EMPTY_FILTERS: RecordFilters = {
@@ -95,6 +97,7 @@ export const EMPTY_FILTERS: RecordFilters = {
   alertLevel: "all",
   category: [],
   thana: [],
+  pendingReporting: false,
 };
 
 export function activeRefineCount(f: RecordFilters): number {

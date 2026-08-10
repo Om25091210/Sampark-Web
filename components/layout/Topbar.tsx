@@ -4,9 +4,10 @@ import { Search, Bell } from "lucide-react";
 interface TopbarProps {
   title: string;
   subtitle?: string;
+  showSearch?: boolean;
 }
 
-export default function Topbar({ title, subtitle }: TopbarProps) {
+export default function Topbar({ title, subtitle, showSearch = true }: TopbarProps) {
   return (
     <header
       style={{
@@ -38,20 +39,22 @@ export default function Topbar({ title, subtitle }: TopbarProps) {
       {/* Right: Search + Notif + Avatar */}
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
         {/* Search */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-          <Search
-            size={16}
-            strokeWidth={1.75}
-            color="var(--text-tertiary)"
-            style={{ position: "absolute", left: "var(--space-3)", pointerEvents: "none" }}
-          />
-          <input
-            type="text"
-            placeholder="खोजें..."
-            className="input"
-            style={{ height: "38px", paddingLeft: "36px", width: "220px" }}
-          />
-        </div>
+        {showSearch && (
+          <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+            <Search
+              size={16}
+              strokeWidth={1.75}
+              color="var(--text-tertiary)"
+              style={{ position: "absolute", left: "var(--space-3)", pointerEvents: "none" }}
+            />
+            <input
+              type="text"
+              placeholder="खोजें..."
+              className="input"
+              style={{ height: "38px", paddingLeft: "36px", width: "220px" }}
+            />
+          </div>
+        )}
 
         {/* Notification Bell → notifications */}
         <Link
