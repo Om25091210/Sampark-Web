@@ -22,7 +22,12 @@ type QueueItem =
   | { kind: "change"; data: WireCadreChange }
   | { kind: "create"; data: WireCadreCreateRequest };
 
-const VISIBLE = 5;
+// Fixed at 2 -- this is the dashboard's compact rail, not a scrolling list. As
+// more requests come in, the widget's height must stay predictable; "+N अन्य"
+// plus the "पूरा विवरण देखें" button below hand off to the /approvals page
+// (ApprovalItemCard) instead of letting this card grow and push the rest of
+// the right rail (SDOPPerformance etc.) down the page.
+const VISIBLE = 2;
 
 function itemName(item: QueueItem): string {
   return item.kind === "change"
@@ -55,8 +60,12 @@ export default function ApprovalQueue() {
   // also trip react-hooks' set-state-in-effect rule.
   const load = useCallback(() => {
     Promise.all([
-      listCadreChanges({ awaitingMe: true, status: "pending", pageSize: 15 }),
-      listCadreCreateRequests({ awaitingMe: true, status: "pending", pageSize: 15 }),
+      // Both endpoints sort submittedAt desc (newest first), so VISIBLE rows
+      // from each side is already enough candidates to guarantee the true
+      // combined top-VISIBLE survives the client-side merge below -- no need
+      // to over-fetch just to throw most of it away on a 2-card widget.
+      listCadreChanges({ awaitingMe: true, status: "pending", pageSize: VISIBLE }),
+      listCadreCreateRequests({ awaitingMe: true, status: "pending", pageSize: VISIBLE }),
     ])
       .then(([changes, creates]) => {
         const merged: QueueItem[] = [
