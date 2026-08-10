@@ -369,13 +369,34 @@ export interface WireReportCadre {
   avatarUrl?: string;
 }
 
+export interface WireReportGps {
+  latitude: number;
+  longitude: number;
+  address: string;
+}
+
+// Full shape (matches lib/serialize.ts's toWireReport on the backend, used by
+// BOTH GET /reports and GET /cadres/:id/reports/:rid) -- GET /reports already
+// returns every field per row, not a thinner list-only pick, so a report
+// detail view needs no separate fetch beyond what listReports already got.
 export interface WireReport {
   id: number;
   cadreId: number;
   cadre?: WireReportCadre;
   reportingPlace: "thana" | "village";
+  specificLocation: string;
   personStatus: "alive" | "dead";
+  currentPhone: string;
   currentActivity: string;
+  /** ADR-050. "अन्य माओवादियों से समर्पण हुआ विवरण". Absent when not filled. */
+  surrenderNetworkDetails?: string;
+  /** ADR-050. "अन्य जानकारी" — free-form catch-all. Absent when not filled. */
+  otherInformation?: string;
+  /** Legacy single-photo URL, for older rows. Prefer photoUrls. */
+  photoUrl?: string;
+  photoUrls?: string[];
+  gpsCoords?: WireReportGps;
+  isHomeAddress?: boolean;
   reportedAt: string;
   reportedBy: number;
 }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ReactNode } from "react";
-import Modal from "./Modal";
+import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { createUser, updateUser, ApiError, type WireUser } from "@/lib/api";
 import { ROLE_OPTIONS, scopeFieldFor, isValidEmail, type UserRole } from "@/lib/users";

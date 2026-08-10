@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import ReportDetailModal from "./ReportDetailModal";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { listReports, type WireReport } from "@/lib/api";
@@ -28,6 +29,7 @@ const PAGE_SIZE = 6;
 export default function RecentReportsTable() {
   const router = useRouter();
   const [reports, setReports] = useState<WireReport[]>([]);
+  const [selectedReport, setSelectedReport] = useState<WireReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -80,7 +82,13 @@ export default function RecentReportsTable() {
             </thead>
             <tbody>
               {reports.map((r) => (
-                <tr key={r.id} style={{ borderBottom: "1px solid var(--border)" }}>
+                <tr
+                  key={r.id}
+                  onClick={() => setSelectedReport(r)}
+                  style={{ borderBottom: "1px solid var(--border)", cursor: "pointer", transition: "var(--transition)" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-hover)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
                   {/* Person */}
                   <td style={cellStyle}>
                     <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
@@ -144,6 +152,10 @@ export default function RecentReportsTable() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {selectedReport && (
+        <ReportDetailModal report={selectedReport} onClose={() => setSelectedReport(null)} />
       )}
     </div>
   );
