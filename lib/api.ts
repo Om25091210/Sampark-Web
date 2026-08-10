@@ -345,6 +345,10 @@ export async function getCadreFacets(category?: string): Promise<CadreFacets> {
   return apiFetch<CadreFacets>("/cadres/facets", { query: { category } });
 }
 
+export async function getCadre(id: number): Promise<WireCadre> {
+  return apiFetch<WireCadre>(`/cadres/${id}`);
+}
+
 // ─── Officers (admin+) ────────────────────────────────────────────────────────
 
 export interface WireOfficer extends WireUser {
@@ -422,6 +426,22 @@ export async function listReports(params: ListReportsParams): Promise<PaginatedR
       page: params.page,
       pageSize: params.pageSize,
     },
+  });
+}
+
+export interface ListCadreReportsParams {
+  /** YYYY-MM-DD, India calendar day — matches the mobile date filter (ADR-024). */
+  date?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function listReportsByCadre(
+  cadreId: number,
+  params: ListCadreReportsParams,
+): Promise<PaginatedResponse<WireReport>> {
+  return apiFetch<PaginatedResponse<WireReport>>(`/cadres/${cadreId}/reports`, {
+    query: { date: params.date, page: params.page, pageSize: params.pageSize },
   });
 }
 

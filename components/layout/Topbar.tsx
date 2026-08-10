@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, ArrowLeft } from "lucide-react";
 
 interface TopbarProps {
   title: string;
   subtitle?: string;
   showSearch?: boolean;
+  /** Renders a back arrow before the title, linking here (e.g. a detail page → its list). */
+  backHref?: string;
 }
 
-export default function Topbar({ title, subtitle, showSearch = true }: TopbarProps) {
+export default function Topbar({ title, subtitle, showSearch = true, backHref }: TopbarProps) {
   return (
     <header
       style={{
@@ -25,15 +27,36 @@ export default function Topbar({ title, subtitle, showSearch = true }: TopbarPro
       }}
     >
       {/* Left: Title */}
-      <div>
-        <h1 className="t-h4" style={{ fontSize: "1.0625rem" }}>
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="t-caption" style={{ marginTop: "2px" }}>
-            {subtitle}
-          </p>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
+        {backHref && (
+          <Link
+            href={backHref}
+            aria-label="वापस जाएं"
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "var(--radius-lg)",
+              background: "var(--surface-hover)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+              flexShrink: 0,
+            }}
+          >
+            <ArrowLeft size={16} strokeWidth={1.75} />
+          </Link>
         )}
+        <div>
+          <h1 className="t-h4" style={{ fontSize: "1.0625rem" }}>
+            {title}
+          </h1>
+          {subtitle && (
+            <p className="t-caption" style={{ marginTop: "2px" }}>
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Right: Search + Notif + Avatar */}

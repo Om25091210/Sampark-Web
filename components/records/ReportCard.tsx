@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   CATEGORY_CHIP,
   ALERT_META,
@@ -22,9 +23,13 @@ export default function ReportCard({ cadre }: { cadre: Cadre }) {
   const accent = ALERT_META[tagLevel(tag)];
 
   return (
-    <div
+    // Same destination + interaction the mobile card's onPress opens (the
+    // cadre's reporting record) — a card in this list is a person, tapping it
+    // opens their record, on web exactly as it does on mobile.
+    <Link
+      href={`/records/${cadre.id}`}
       className="card card--elevated"
-      style={{ display: "flex", overflow: "hidden", padding: 0 }}
+      style={{ display: "flex", overflow: "hidden", padding: 0, cursor: "pointer", textDecoration: "none", color: "inherit" }}
     >
       {/* Alert accent bar */}
       <div style={{ width: 4, background: accent.color, alignSelf: "stretch", flexShrink: 0 }} />
@@ -89,6 +94,6 @@ export default function ReportCard({ cadre }: { cadre: Cadre }) {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
