@@ -25,7 +25,7 @@ export default function AssignOfficerModal({ cadreId, currentOfficerId, onClose,
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listOfficers({ pageSize: 100 })
+    listOfficers({ pageSize: 50 })
       .then((res) => setOfficers(res.data))
       .catch(() => setError("अधिकारी सूची लोड नहीं हो सकी।"))
       .finally(() => setLoading(false));
@@ -62,8 +62,8 @@ export default function AssignOfficerModal({ cadreId, currentOfficerId, onClose,
       </div>
 
       {error && <p className="t-body-sm" style={{ color: "var(--rose)", marginBottom: "var(--space-3)" }}>{error}</p>}
-      {loading && <p className="t-caption">लोड हो रहा है...</p>}
-      {!loading && filtered.length === 0 && <p className="t-body-sm" style={{ color: "var(--text-tertiary)" }}>कोई अधिकारी नहीं मिला।</p>}
+      {!error && loading && <p className="t-caption">लोड हो रहा है...</p>}
+      {!error && !loading && filtered.length === 0 && <p className="t-body-sm" style={{ color: "var(--text-tertiary)" }}>कोई अधिकारी नहीं मिला।</p>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-1)", maxHeight: 360, overflowY: "auto" }}>
         {filtered.map((officer) => {
