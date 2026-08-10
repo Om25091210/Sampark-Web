@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { login, verifyTwoFactor, ApiError, type LoginResult } from "@/lib/api";
 
 export default function LoginPage() {
@@ -13,7 +13,6 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +35,13 @@ function LoginForm() {
 
   function goToNext() {
     const next = searchParams.get("next");
-    router.push(next && next.startsWith("/") ? next : "/dashboard");
+    // Hard navigation, not router.push: the auth cookie was just set via
+    // document.cookie, but Next's client-side router cache can still hold a
+    // pre-login (redirect-to-/login) response for this URL and serve that
+    // instead of re-hitting proxy.ts with the new cookie -- the exact "click
+    // does nothing, refresh works" symptom. A full navigation always re-runs
+    // proxy.ts fresh.
+    window.location.href = next && next.startsWith("/") ? next : "/dashboard";
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
