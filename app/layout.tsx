@@ -19,7 +19,7 @@ const notoDevanagari = Noto_Sans_Devanagari({
 });
 
 export const metadata: Metadata = {
-  title: "Sampark — Bijapur Police · CG",
+  title: "B-Smart — Bijapur Police · CG",
   description: "Police workflow platform for SP Bijapur, Chhattisgarh",
 };
 

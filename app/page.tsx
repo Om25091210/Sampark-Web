@@ -2,52 +2,11 @@ import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
 import Link from "next/link";
 
-const FEATURES = [
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1DA8E0" strokeWidth="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-      </svg>
-    ),
-    title: "डिजिटल रिपोर्टिंग",
-    desc: "कागज़-रहित रिपोर्टिंग प्रणाली जो सभी व्यक्तियों की जानकारी सुरक्षित रखती है।",
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E07B2A" strokeWidth="2">
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="3" />
-        <line x1="12" y1="2" x2="12" y2="5" />
-        <line x1="12" y1="19" x2="12" y2="22" />
-        <line x1="2" y1="12" x2="5" y2="12" />
-        <line x1="19" y1="12" x2="22" y2="12" />
-      </svg>
-    ),
-    title: "लोकेशन ट्रैकिंग",
-    desc: "वास्तविक समय में सभी थाना क्षेत्रों की निगरानी और रिपोर्टिंग स्थान की पुष्टि।",
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#27AE60" strokeWidth="2">
-        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-      </svg>
-    ),
-    title: "प्रदर्शन विश्लेषण",
-    desc: "SDOP और अधिकारियों के प्रदर्शन का विस्तृत विश्लेषण और रिपोर्ट।",
-  },
-  {
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1DA8E0" strokeWidth="2">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-      </svg>
-    ),
-    title: "सूचना प्रणाली",
-    desc: "स्वचालित अनुस्मारक और अधिसूचनाएं सभी अधिकारियों और संबंधित व्यक्तियों को।",
-  },
+const PROCESS = [
+  { step: "01", title: "दर्ज", desc: "व्यक्ति का रिकॉर्ड बनता है।", color: "#1DA8E0" },
+  { step: "02", title: "रिपोर्टिंग", desc: "अधिकारी क्षेत्र से स्थिति भेजते हैं।", color: "#E07B2A" },
+  { step: "03", title: "अनुमोदन", desc: "श्रेणीबद्ध रूप से स्वीकृत होती है।", color: "#27AE60" },
+  { step: "04", title: "निगरानी", desc: "डैशबोर्ड पर सम्पूर्ण स्थिति दिखती है।", color: "#1DA8E0" },
 ];
 
 export default function LandingPage() {
@@ -56,40 +15,20 @@ export default function LandingPage() {
       <Navbar />
       <HeroSection />
 
-      {/* Features Section */}
+      {/* Process Section */}
       <section style={{ padding: "80px 40px", background: "#fff" }}>
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: "56px" }}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "#E8F4FD",
-                borderRadius: "20px",
-                padding: "6px 14px",
-                marginBottom: "16px",
-              }}
-            >
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "#1DA8E0" }}>
-                मुख्य विशेषताएं
-              </span>
-            </div>
-            <h2
-              style={{
-                fontSize: "40px",
-                fontWeight: 800,
-                color: "#1A1D2E",
-                lineHeight: 1.2,
-                marginBottom: "16px",
-              }}
-            >
-              एक मंच, सम्पूर्ण समाधान
-            </h2>
-            <p style={{ fontSize: "16px", color: "#8B90A7", maxWidth: "500px", margin: "0 auto" }}>
-              बीजापुर पुलिस के लिए विशेष रूप से तैयार किया गया डिजिटल प्रबंधन मंच।
-            </p>
-          </div>
+          <h2
+            style={{
+              fontSize: "32px",
+              fontWeight: 800,
+              color: "#1A1D2E",
+              textAlign: "center",
+              marginBottom: "56px",
+            }}
+          >
+            कार्यप्रवाह
+          </h2>
 
           <div
             style={{
@@ -98,43 +37,31 @@ export default function LandingPage() {
               gap: "24px",
             }}
           >
-            {FEATURES.map((f, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "#F5F6FA",
-                  borderRadius: "16px",
-                  padding: "28px",
-                  border: "1px solid #E8EAF0",
-                }}
-              >
+            {PROCESS.map((p, i) => (
+              <div key={i} style={{ position: "relative" }}>
                 <div
                   style={{
-                    width: "48px",
-                    height: "48px",
-                    background: "#fff",
-                    borderRadius: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: "18px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-                  }}
-                >
-                  {f.icon}
-                </div>
-                <h3
-                  style={{
-                    fontSize: "15px",
-                    fontWeight: 700,
-                    color: "#1A1D2E",
+                    fontSize: "34px",
+                    fontWeight: 800,
+                    color: p.color,
+                    opacity: 0.35,
                     marginBottom: "8px",
                   }}
                 >
-                  {f.title}
+                  {p.step}
+                </div>
+                <h3
+                  style={{
+                    fontSize: "17px",
+                    fontWeight: 700,
+                    color: "#1A1D2E",
+                    marginBottom: "6px",
+                  }}
+                >
+                  {p.title}
                 </h3>
                 <p style={{ fontSize: "13.5px", color: "#8B90A7", lineHeight: 1.6 }}>
-                  {f.desc}
+                  {p.desc}
                 </p>
               </div>
             ))}
@@ -170,8 +97,7 @@ export default function LandingPage() {
               lineHeight: 1.7,
             }}
           >
-            बीजापुर पुलिस के डिजिटल कार्यप्रवाह मंच पर जुड़ें और
-            प्रशासनिक प्रक्रियाओं को सरल बनाएं।
+            B-Smart पर लॉगिन करें।
           </p>
           <Link
             href="/login"
@@ -223,10 +149,10 @@ export default function LandingPage() {
               color: "#fff",
             }}
           >
-            S
+            B
           </div>
           <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "13px" }}>
-            SAMPARK · Bijapur Police · CG
+            B-Smart · Bijapur Police · CG
           </span>
         </div>
         <div style={{ color: "rgba(255,255,255,0.3)", fontSize: "12px" }}>

@@ -57,11 +57,11 @@ export default function Navbar() {
             color: "#fff",
           }}
         >
-          S
+          B
         </div>
         <div>
           <div style={{ fontWeight: 800, fontSize: "16px", color: "#1A1D2E", letterSpacing: "0.04em" }}>
-            SAMPARK
+            B-Smart
           </div>
           <div style={{ fontSize: "10.5px", color: "#8B90A7", fontWeight: 400, marginTop: "-1px" }}>
             Bijapur Police · CG

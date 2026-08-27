@@ -110,10 +110,10 @@ export default function HeroSection() {
               marginBottom: "24px",
             }}
           >
-            <span style={{ color: "#1DA8E0" }}>संपर्क</span>
+            <span style={{ color: "#1DA8E0" }}>B-Smart</span>
             <br />
-            पुलिस कार्यप्रवाह{" "}
-            <span style={{ color: "#E07B2A" }}>प्रबंधन मंच</span>
+            कार्यप्रवाह{" "}
+            <span style={{ color: "#E07B2A" }}>मंच</span>
           </h1>
 
           {/* Description */}
@@ -127,9 +127,8 @@ export default function HeroSection() {
               fontWeight: 400,
             }}
           >
-            संपर्क एक उन्नत पुलिस कार्यप्रवाह मंच है जो बीजापुर जिले में
-            नक्सल प्रभावित क्षेत्रों से आत्मसमर्पित व्यक्तियों के
-            पुनर्वास और निगरानी को सुव्यवस्थित करता है।
+            आत्मसमर्पित व्यक्तियों की रिपोर्टिंग, अनुमोदन और निगरानी —
+            एक ही मंच पर।
           </p>
 
           {/* Action Buttons */}
