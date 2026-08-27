@@ -96,25 +96,24 @@ export default function HeroSection() {
               }}
             />
             <span style={{ fontSize: "13px", fontWeight: 600, color: "#1A1D2E" }}>
-              नई शुरुआत
+              बीजापुर पुलिस · डिजिटल मंच
             </span>
           </div>
 
           {/* H1 */}
           <h1
             style={{
-              fontSize: "60px",
+              fontSize: "56px",
               fontWeight: 900,
               color: "#1A1D2E",
-              lineHeight: 1.1,
+              lineHeight: 1.15,
               marginBottom: "24px",
             }}
           >
-            हम{" "}
-            <span style={{ color: "#1DA8E0" }}>जीवन</span>
+            <span style={{ color: "#1DA8E0" }}>संपर्क</span>
             <br />
-            बदलते{" "}
-            <span style={{ color: "#E07B2A" }}>हैं</span>
+            पुलिस कार्यप्रवाह{" "}
+            <span style={{ color: "#E07B2A" }}>प्रबंधन मंच</span>
           </h1>
 
           {/* Description */}
