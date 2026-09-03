@@ -148,7 +148,10 @@ export interface WireCadre {
   designation: string;
   category: "surrendered" | "thana" | "jail";
   priorityCategory?: "A" | "B" | "C" | "jail" | "death";
-  permanentStatus?: "deceased" | "government_job" | "gs" | "living_elsewhere";
+  permanentStatus?: "deceased" | "government_job" | "gs" | "living_elsewhere" | "untraceable";
+  // This task. Only meaningful alongside permanentStatus='deceased' -- set by
+  // report-time death sync once the 2-step ladder approves it (ISO date).
+  deceasedDate?: string;
   alertLevel: "critical" | "warning" | "normal";
   alertDate?: string;
   incident?: string;
@@ -164,6 +167,7 @@ export interface WireCadre {
   surrenderDate?: string;
   surrenderLocation?: string;
   surrenderOrigin?: "district" | "other";
+  otherOriginType?: "other_district" | "other_state";
   surrenderYear?: string;
   regiment?: string;
   familyGroupInfo?: string;
@@ -412,6 +416,7 @@ export interface ChangeableCadreFields {
   surrenderDate?: string | null;
   surrenderLocation?: string | null;
   surrenderOrigin?: "district" | "other" | null;
+  otherOriginType?: "other_district" | "other_state" | null;
   surrenderYear?: string | null;
   familyGroupInfo?: string | null;
   subDivision?: string | null;
@@ -423,7 +428,7 @@ export interface ChangeableCadreFields {
   gender?: "male" | "female" | null;
   caste?: string | null;
   priorityCategory?: "A" | "B" | "C" | "jail" | "death" | null;
-  permanentStatus?: "deceased" | "government_job" | "gs" | "living_elsewhere" | null;
+  permanentStatus?: "deceased" | "government_job" | "gs" | "living_elsewhere" | "untraceable" | null;
   hasAadhaar?: boolean;
   hasBankAccount?: boolean;
   hasAbProforma?: boolean;
@@ -494,10 +499,13 @@ export interface WireReport {
   cadreId: number;
   cadre?: WireReportCadre;
   reportingPlace: "thana" | "village";
-  specificLocation: string;
+  // This task. Absent on a personStatus='dead' report -- none of these three
+  // apply to a death report (mirrors mobile's Report type / the backend's
+  // checkDeathRequirements).
+  specificLocation?: string;
   personStatus: "alive" | "dead";
-  currentPhone: string;
-  currentActivity: string;
+  currentPhone?: string;
+  currentActivity?: string;
   /** ADR-050. "अन्य माओवादियों से समर्पण हुआ विवरण". Absent when not filled. */
   surrenderNetworkDetails?: string;
   /** ADR-050. "अन्य जानकारी" — free-form catch-all. Absent when not filled. */
@@ -754,6 +762,7 @@ export interface WireCadreDraft {
   surrenderYear?: string | null;
   surrenderDate?: string | null;
   surrenderOrigin?: "district" | "other" | null;
+  otherOriginType?: "other_district" | "other_state" | null;
   familyGroupInfo?: string | null;
   subDivision?: string | null;
   district?: string | null;

@@ -123,7 +123,7 @@ export default function RecentReportsTable() {
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {r.currentActivity}
+                          {r.currentActivity || "—"}
                         </div>
                       </div>
                     </div>

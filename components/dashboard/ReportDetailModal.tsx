@@ -159,23 +159,25 @@ export default function ReportDetailModal({ report, onClose }: ReportDetailModal
             label="वर्तमान फ़ोन नम्बर"
             value={report.currentPhone}
             action={
-              <a
-                href={`tel:${report.currentPhone.replace(/\s/g, "")}`}
-                aria-label="कॉल करें"
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "var(--radius-full)",
-                  background: "var(--brand-soft)",
-                  color: "var(--brand-strong)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
-                <Phone size={16} strokeWidth={1.75} />
-              </a>
+              report.currentPhone ? (
+                <a
+                  href={`tel:${report.currentPhone.replace(/\s/g, "")}`}
+                  aria-label="कॉल करें"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "var(--radius-full)",
+                    background: "var(--brand-soft)",
+                    color: "var(--brand-strong)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Phone size={16} strokeWidth={1.75} />
+                </a>
+              ) : undefined
             }
           />
         </Section>

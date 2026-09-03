@@ -50,7 +50,9 @@ export const ALERT_META: Record<AlertLevel, { label: string; color: string; soft
 // src/constants/permanentStatus.ts, src/types/index.ts's HARDCOPY_DOCS) ───────
 
 export type PriorityCategory = "A" | "B" | "C" | "jail" | "death";
-export type PermanentStatus = "deceased" | "government_job" | "gs" | "living_elsewhere";
+// `untraceable` (अप्राप्य) is the fifth permanent mark -- see the mobile
+// PermanentStatus type's own comment for why it's separate from PriorityCategory.
+export type PermanentStatus = "deceased" | "government_job" | "gs" | "living_elsewhere" | "untraceable";
 
 // ADR-046. The register's कैटेगरी grade — a surrender risk tier, distinct from
 // alertLevel. jail/death carry no reporting cadence and never alarm.
@@ -67,6 +69,7 @@ export const PERMANENT_STATUS_LABELS: Record<PermanentStatus, string> = {
   government_job: "शासकीय नौकरी",
   gs: "GS",
   living_elsewhere: "अन्य जिले में निवासरत",
+  untraceable: "अप्राप्य",
 };
 
 // ADR-029. The four hardcopy documents, in the fixed order the profile lists them.
@@ -108,6 +111,14 @@ export const GENDER_LABELS: Record<"male" | "female", string> = { male: "पु�
 export const SURRENDER_ORIGIN_LABELS: Record<"district" | "other", string> = {
   district: "बीजापुर जिला",
   other: "अन्य जिला/राज्य",
+};
+
+// This task. Sub-category of surrenderOrigin="other" — the mobile दीगर जिला/राज्य
+// dashboard tabs and create-cadre form. Only meaningful alongside surrenderOrigin="other".
+export type OtherOriginType = "other_district" | "other_state";
+export const OTHER_ORIGIN_TYPE_LABELS: Record<OtherOriginType, string> = {
+  other_district: "दीगर जिला",
+  other_state: "राज्य",
 };
 
 // ─── Alert tag derivation (mirrors CadreCard.initialTag) ──────────────────────

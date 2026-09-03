@@ -5,7 +5,7 @@ import Modal from "@/components/ui/Modal";
 import { submitCadreChange, type WireCadreChange } from "@/lib/api";
 import { PERMANENT_STATUS_LABELS, type PermanentStatus } from "@/lib/cadres";
 
-const OPTIONS: PermanentStatus[] = ["deceased", "government_job", "gs", "living_elsewhere"];
+const OPTIONS: PermanentStatus[] = ["deceased", "government_job", "gs", "living_elsewhere", "untraceable"];
 
 interface PermanentStatusModalProps {
   cadreId: number;

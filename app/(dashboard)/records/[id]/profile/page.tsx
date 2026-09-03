@@ -190,6 +190,12 @@ export default function CadreProfilePage({ params }: { params: Promise<{ id: str
     { label: "सब डीवीजन", value: cadre.subDivision },
     { label: "कैटेगरी", value: priority?.label },
     { label: "स्थायी चिह्न", value: cadre.permanentStatus ? PERMANENT_STATUS_LABELS[cadre.permanentStatus] : undefined },
+    // This task. Only meaningful alongside permanentStatus='deceased' -- set by
+    // report-time death sync once the 2-step ladder approves it.
+    {
+      label: "मृत्यु तिथि",
+      value: cadre.permanentStatus === "deceased" ? (formatDate(cadre.deceasedDate) || undefined) : undefined,
+    },
     { label: "पद / ज़िम्मेदारी", value: cadre.designation },
     { label: "वेरिफिकेशन स्थान", value: cadre.verificationOffice },
     { label: "पर्यवेक्षक कार्यालय", value: cadre.supervisoryOffice },
