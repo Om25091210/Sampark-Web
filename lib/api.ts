@@ -152,6 +152,8 @@ export interface WireCadre {
   // This task. Only meaningful alongside permanentStatus='deceased' -- set by
   // report-time death sync once the 2-step ladder approves it (ISO date).
   deceasedDate?: string;
+  // This task. A live, reversible custody flag -- absent when never flagged.
+  custodyStatus?: "in_custody" | "released";
   alertLevel: "critical" | "warning" | "normal";
   alertDate?: string;
   incident?: string;
@@ -429,6 +431,8 @@ export interface ChangeableCadreFields {
   caste?: string | null;
   priorityCategory?: "A" | "B" | "C" | "jail" | "death" | null;
   permanentStatus?: "deceased" | "government_job" | "gs" | "living_elsewhere" | "untraceable" | null;
+  // This task.
+  custodyStatus?: "in_custody" | "released" | null;
   hasAadhaar?: boolean;
   hasBankAccount?: boolean;
   hasAbProforma?: boolean;

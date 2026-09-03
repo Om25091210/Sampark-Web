@@ -11,6 +11,7 @@ import {
   ArrowLeftRight,
   AtSign,
   Bookmark,
+  Lock,
   Download,
 } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
@@ -18,6 +19,7 @@ import Container from "@/components/ui/Container";
 import AssignOfficerModal from "@/components/records/AssignOfficerModal";
 import AliasModal from "@/components/records/AliasModal";
 import PermanentStatusModal from "@/components/records/PermanentStatusModal";
+import CustodyStatusModal from "@/components/records/CustodyStatusModal";
 import { getCadre, type WireCadre, type WireOfficer } from "@/lib/api";
 import {
   getInitials,
@@ -28,6 +30,7 @@ import {
   CATEGORY_CHIP,
   PRIORITY,
   PERMANENT_STATUS_LABELS,
+  CUSTODY_STATUS_LABELS,
   HARDCOPY_DOCS,
 } from "@/lib/cadres";
 
@@ -109,6 +112,8 @@ export default function CadreProfilePage({ params }: { params: Promise<{ id: str
   const [assignOpen, setAssignOpen] = useState(false);
   const [aliasOpen, setAliasOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  // This task. हिरासत की स्थिति -- same proposal mechanics as statusOpen above.
+  const [custodyOpen, setCustodyOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const refetch = useCallback(() => {
@@ -140,6 +145,12 @@ export default function CadreProfilePage({ params }: { params: Promise<{ id: str
 
   function handleStatusSaved(result: { status: string }) {
     setStatusOpen(false);
+    refetch();
+    setToast(result.status === "applied" ? "सहेजा गया।" : "अनुमोदन हेतु भेजा गया।");
+  }
+
+  function handleCustodySaved(result: { status: string }) {
+    setCustodyOpen(false);
     refetch();
     setToast(result.status === "applied" ? "सहेजा गया।" : "अनुमोदन हेतु भेजा गया।");
   }
@@ -196,6 +207,8 @@ export default function CadreProfilePage({ params }: { params: Promise<{ id: str
       label: "मृत्यु तिथि",
       value: cadre.permanentStatus === "deceased" ? (formatDate(cadre.deceasedDate) || undefined) : undefined,
     },
+    // This task. Hidden (row absent) until flagged via the हिरासत की स्थिति menu.
+    { label: "हिरासत की स्थिति", value: cadre.custodyStatus ? CUSTODY_STATUS_LABELS[cadre.custodyStatus] : undefined },
     { label: "पद / ज़िम्मेदारी", value: cadre.designation },
     { label: "वेरिफिकेशन स्थान", value: cadre.verificationOffice },
     { label: "पर्यवेक्षक कार्यालय", value: cadre.supervisoryOffice },
@@ -267,6 +280,15 @@ export default function CadreProfilePage({ params }: { params: Promise<{ id: str
                         >
                           <Bookmark size={15} strokeWidth={1.75} color="var(--brand-strong)" />
                           प्रोफ़ाइल को चिह्नित करें
+                        </button>
+                        <button
+                          onClick={() => { setMenuOpen(false); setCustodyOpen(true); }}
+                          style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", background: "none", border: "none", cursor: "pointer", width: "100%", textAlign: "left", color: "var(--text-primary)", fontSize: "0.8125rem" }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-hover)")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        >
+                          <Lock size={15} strokeWidth={1.75} color="var(--brand-strong)" />
+                          हिरासत की स्थिति
                         </button>
                       </div>
                     </>
@@ -473,6 +495,14 @@ export default function CadreProfilePage({ params }: { params: Promise<{ id: str
           currentStatus={cadre.permanentStatus}
           onClose={() => setStatusOpen(false)}
           onSaved={handleStatusSaved}
+        />
+      )}
+      {custodyOpen && (
+        <CustodyStatusModal
+          cadreId={cadreId}
+          currentStatus={cadre.custodyStatus}
+          onClose={() => setCustodyOpen(false)}
+          onSaved={handleCustodySaved}
         />
       )}
 

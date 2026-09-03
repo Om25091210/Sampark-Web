@@ -53,6 +53,10 @@ export type PriorityCategory = "A" | "B" | "C" | "jail" | "death";
 // `untraceable` (अप्राप्य) is the fifth permanent mark -- see the mobile
 // PermanentStatus type's own comment for why it's separate from PriorityCategory.
 export type PermanentStatus = "deceased" | "government_job" | "gs" | "living_elsewhere" | "untraceable";
+// This task. A LIVE, reversible custody flag -- see the mobile CustodyStatus
+// type's own comment for why it's separate from category/priorityCategory's
+// 'jail' values.
+export type CustodyStatus = "in_custody" | "released";
 
 // ADR-046. The register's कैटेगरी grade — a surrender risk tier, distinct from
 // alertLevel. jail/death carry no reporting cadence and never alarm.
@@ -70,6 +74,12 @@ export const PERMANENT_STATUS_LABELS: Record<PermanentStatus, string> = {
   gs: "GS",
   living_elsewhere: "अन्य जिले में निवासरत",
   untraceable: "अप्राप्य",
+};
+
+// This task. Mirrors mobile's CUSTODY_STATUS_LABELS.
+export const CUSTODY_STATUS_LABELS: Record<CustodyStatus, string> = {
+  in_custody: "हिरासत में / जेल में",
+  released: "रिहा / जेल से बाहर",
 };
 
 // ADR-029. The four hardcopy documents, in the fixed order the profile lists them.
