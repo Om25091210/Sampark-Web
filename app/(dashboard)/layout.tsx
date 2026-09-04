@@ -1,4 +1,5 @@
 import Sidebar from "@/components/layout/Sidebar";
+import SessionKeepAlive from "@/components/layout/SessionKeepAlive";
 
 // Route gating is now `middleware.ts` (server-enforced, reads the access-token
 // cookie before this layout ever renders) -- the old client-side sessionStorage
@@ -11,6 +12,7 @@ export default function DashboardLayout({
 }) {
   return (
     <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "var(--bg)" }}>
+      <SessionKeepAlive />
       <Sidebar />
       <div style={{ flex: 1, overflow: "auto", display: "flex", flexDirection: "column" }}>
         {children}

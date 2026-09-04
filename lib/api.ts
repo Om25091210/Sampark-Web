@@ -246,8 +246,10 @@ async function doRefresh(): Promise<boolean> {
 
 // Single-flight: concurrent 401s during one refresh share the same in-flight promise
 // instead of each firing their own POST /auth/refresh (mirrors the mobile client's
-// interceptor pattern, src/services/api.ts).
-async function refreshOnce(): Promise<boolean> {
+// interceptor pattern, src/services/api.ts). Exported so a background keep-alive
+// (SessionKeepAlive.tsx) can also drive it proactively -- see that file's comment
+// for why apiFetch's reactive on-401 refresh alone isn't enough on web.
+export async function refreshOnce(): Promise<boolean> {
   if (refreshInFlight === null) {
     refreshInFlight = doRefresh().finally(() => {
       refreshInFlight = null;
