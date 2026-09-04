@@ -16,6 +16,7 @@ import {
   SUB_DIVISIONS,
   GENDER_LABELS,
   SURRENDER_ORIGIN_LABELS,
+  OTHER_ORIGIN_TYPE_LABELS,
   PRIORITY_CATEGORY_OPTION_LABELS,
   HARDCOPY_DOCS,
 } from "@/lib/cadres";
@@ -38,7 +39,7 @@ const ALL_FIELD_KEYS: (keyof ChangeableCadreFields)[] = [
   "name", "phone", "priorityCategory", "district", "subDivision", "thana",
   "currentAddress", "permanentAddress", "residingVillage", "designation",
   "verificationOffice", "supervisoryOffice", "incident",
-  "surrenderLocation", "surrenderYear", "surrenderOrigin", "familyGroupInfo",
+  "surrenderLocation", "surrenderYear", "surrenderOrigin", "otherOriginType", "familyGroupInfo",
   "gender", "caste", "fatherName", "motherName", "spouseName",
 ];
 
@@ -48,6 +49,12 @@ const SURRENDER_FIELDS: FieldDef[] = [
   {
     key: "surrenderOrigin", label: "समर्पण मूल", type: "select", nullable: true,
     options: (["district", "other"] as const).map((v) => ({ value: v, label: SURRENDER_ORIGIN_LABELS[v] })),
+  },
+  // This task. Only meaningful (and only rendered — see the `visibleSurrenderFields`
+  // filter below) when surrenderOrigin="other".
+  {
+    key: "otherOriginType", label: "उप-श्रेणी (दीगर जिला/राज्य)", type: "select", nullable: true,
+    options: (["other_district", "other_state"] as const).map((v) => ({ value: v, label: OTHER_ORIGIN_TYPE_LABELS[v] })),
   },
   { key: "familyGroupInfo", label: "परिचितों की जानकारी", type: "textarea" },
 ];
@@ -178,6 +185,13 @@ export default function CadreEditPage({ params }: { params: Promise<{ id: string
     ];
   }, [cadre, thanaOptions]);
 
+  // This task. उप-श्रेणी only makes sense once समर्पण मूल is set to "other" —
+  // hidden otherwise, same gating rule the field's own comment describes.
+  const visibleSurrenderFields = useMemo(
+    () => SURRENDER_FIELDS.filter((f) => f.key !== "otherOriginType" || values.surrenderOrigin === "other"),
+    [values.surrenderOrigin],
+  );
+
   const LABEL_OF: Record<string, string> = useMemo(
     () => Object.fromEntries([...FIELDS, ...SURRENDER_FIELDS, ...PERSONAL_FIELDS].map((f) => [f.key, f.label])),
     [FIELDS],
@@ -282,7 +296,7 @@ export default function CadreEditPage({ params }: { params: Promise<{ id: string
                   <span className="t-caption">समर्पण दिनांक</span>
                   <input type="date" className="input" value={surrenderDate} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setSurrenderDate(e.target.value)} />
                 </label>
-                {SURRENDER_FIELDS.map((f) => (
+                {visibleSurrenderFields.map((f) => (
                   <Field key={f.key} def={f} value={values[f.key] ?? ""} onChange={(v) => setField(f.key, v)} />
                 ))}
               </Section>
