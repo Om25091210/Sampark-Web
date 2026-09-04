@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X } from "lucide-react";
+import { Check, X, ChevronDown, ChevronUp } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import {
@@ -117,12 +117,22 @@ export default function ApprovalItemCard({ item, onChanged, selected, onToggleSe
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  // Collapsed by default -- a change/create with many fields would otherwise
+  // push its own action buttons (and every card after it) off screen.
+  const [expanded, setExpanded] = useState(false);
 
   const d = item.data;
   const status = STATUS_LABELS[d.status] ?? d.status;
   const tone = STATUS_TONE[d.status] ?? "neutral";
   const myRole = getRole();
   const canAct = isActionable(d, myRole);
+  const bodyCount =
+    item.kind === "change"
+      ? Object.keys(item.data.changes).length
+      : DRAFT_FIELD_ORDER.filter((f) => {
+          const v = item.data.draft[f];
+          return v !== undefined && v !== null && v !== "";
+        }).length;
 
   function approve() {
     setBusy(true);
@@ -165,6 +175,10 @@ export default function ApprovalItemCard({ item, onChanged, selected, onToggleSe
               aria-label="स्वीकृति हेतु चुनें"
               style={{ width: 18, height: 18, marginTop: 3, accentColor: "var(--brand)", cursor: "pointer", flexShrink: 0 }}
             />
+          )}
+          {item.kind === "create" && item.data.draft.avatarUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.data.draft.avatarUrl} alt="" style={{ width: 40, height: 40, borderRadius: "var(--radius-md)", objectFit: "cover", flexShrink: 0 }} />
           )}
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
@@ -223,8 +237,55 @@ export default function ApprovalItemCard({ item, onChanged, selected, onToggleSe
         </div>
       )}
 
+      {actionError && <p style={{ fontSize: "0.8125rem", color: "var(--rose)" }}>{actionError}</p>}
+
+      {/* Actions -- only when this caller's role matches the outstanding rung.
+          Kept above the (often long) diff/draft body so approving/rejecting
+          never requires expanding it first. */}
+      {canAct && (
+        rejecting ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
+            <textarea
+              className="input"
+              placeholder="अस्वीकृति का कारण लिखें..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={2}
+              style={{ resize: "vertical", fontFamily: "inherit" }}
+            />
+            <div style={{ display: "flex", gap: "var(--space-2)" }}>
+              <Button variant="danger" size="sm" disabled={!reason.trim() || busy} onClick={confirmReject}>
+                {busy ? "भेजा जा रहा है..." : "अस्वीकृति की पुष्टि करें"}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => { setRejecting(false); setReason(""); }}>
+                रद्द करें
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: "var(--space-2)" }}>
+            <Button variant="primary" size="sm" disabled={busy} onClick={approve}>
+              <Check size={14} strokeWidth={2} /> स्वीकृत करें
+            </Button>
+            <Button variant="secondary" size="sm" disabled={busy} onClick={() => { setRejecting(true); setActionError(null); }}>
+              <X size={14} strokeWidth={2} /> अस्वीकार करें
+            </Button>
+          </div>
+        )
+      )}
+
+      {/* Body toggle -- collapsed by default; the full diff/draft is one click away. */}
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        style={{ display: "flex", alignItems: "center", gap: "var(--space-1)", alignSelf: "flex-start", background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--brand-strong)", fontSize: "0.8125rem", fontWeight: 600 }}
+      >
+        {expanded ? <ChevronUp size={16} strokeWidth={2} /> : <ChevronDown size={16} strokeWidth={2} />}
+        {expanded ? "विवरण छुपाएं" : `पूरा विवरण देखें (${bodyCount} ${item.kind === "change" ? "परिवर्तन" : "फ़ील्ड"})`}
+      </button>
+
       {/* Body: diff table for a change, full draft for a create */}
-      {item.kind === "change" ? (
+      {expanded && (item.kind === "change" ? (
         <div>
           {Object.entries(item.data.changes).map(([field, entry]) => (
             <div key={field} style={{ padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
@@ -266,42 +327,7 @@ export default function ApprovalItemCard({ item, onChanged, selected, onToggleSe
             return v !== undefined && v !== null && v !== "";
           }).map((f) => metaRow(fieldLabel(f), displayValue(f, item.data.draft[f])))}
         </div>
-      )}
-
-      {actionError && <p style={{ fontSize: "0.8125rem", color: "var(--rose)" }}>{actionError}</p>}
-
-      {/* Actions -- only when this caller's role matches the outstanding rung */}
-      {canAct && (
-        rejecting ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-2)" }}>
-            <textarea
-              className="input"
-              placeholder="अस्वीकृति का कारण लिखें..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              rows={2}
-              style={{ resize: "vertical", fontFamily: "inherit" }}
-            />
-            <div style={{ display: "flex", gap: "var(--space-2)" }}>
-              <Button variant="danger" size="sm" disabled={!reason.trim() || busy} onClick={confirmReject}>
-                {busy ? "भेजा जा रहा है..." : "अस्वीकृति की पुष्टि करें"}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => { setRejecting(false); setReason(""); }}>
-                रद्द करें
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", gap: "var(--space-2)" }}>
-            <Button variant="primary" size="sm" disabled={busy} onClick={approve}>
-              <Check size={14} strokeWidth={2} /> स्वीकृत करें
-            </Button>
-            <Button variant="secondary" size="sm" disabled={busy} onClick={() => { setRejecting(true); setActionError(null); }}>
-              <X size={14} strokeWidth={2} /> अस्वीकार करें
-            </Button>
-          </div>
-        )
-      )}
+      ))}
     </div>
   );
 }
