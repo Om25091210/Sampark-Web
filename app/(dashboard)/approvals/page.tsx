@@ -23,11 +23,23 @@ function itemKey(item: ApprovalItem): string {
 
 type TypeFilter = "all" | "change" | "create";
 type StatusFilter = "pending" | "applied" | "rejected" | "cancelled" | "stale" | "all";
+// "mine" = only the rung THIS caller can sign right now (backend's awaitingMe,
+// ADR-028 -- same filter the dashboard's ApprovalQueue widget already uses).
+// "all" = the full audit trail across every rung/status, this page's original
+// behaviour. Without "mine", an admin-approved request now awaiting a
+// super_admin can sit buried past page 1 of a large, newest-first list --
+// it never disappeared, it just was never sorted to the top for THIS caller.
+type QueueMode = "mine" | "all";
 
 const TYPE_TABS: { value: TypeFilter; label: string }[] = [
   { value: "all", label: "सभी" },
   { value: "change", label: "परिवर्तन अनुरोध" },
   { value: "create", label: "नए कैडर अनुरोध" },
+];
+
+const QUEUE_TABS: { value: QueueMode; label: string }[] = [
+  { value: "mine", label: "मेरी कार्रवाई हेतु" },
+  { value: "all", label: "सभी अनुरोध (ऑडिट)" },
 ];
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
@@ -82,6 +94,9 @@ function FilterTabs<T extends string>({
 }
 
 export default function ApprovalsPage() {
+  // Defaults to "mine" -- opening this page should answer "what needs me right
+  // now", same as the dashboard widget, not dump the full org-wide history.
+  const [queueMode, setQueueMode] = useState<QueueMode>("mine");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
   const [limit, setLimit] = useState(PAGE_SIZE);
@@ -110,9 +125,10 @@ export default function ApprovalsPage() {
   // fires a REAL fetch -- never gated on React noticing a value actually changed.
   // That equality-based gate was the bug: clicking a tab that was already active
   // left `loading` stuck true forever, because nothing re-ran to clear it.
-  const runFetch = useCallback((type: TypeFilter, status: StatusFilter, lim: number) => {
+  const runFetch = useCallback((type: TypeFilter, status: StatusFilter, lim: number, mode: QueueMode) => {
     const id = ++requestIdRef.current;
     setLoading(true);
+    const awaitingMe = mode === "mine";
     const statusParam = status === "all" ? undefined : status;
     const wantChanges = type === "all" || type === "change";
     const wantCreates = type === "all" || type === "create";
@@ -120,10 +136,10 @@ export default function ApprovalsPage() {
 
     Promise.all([
       wantChanges
-        ? listCadreChanges({ status: statusParam as WireCadreChange["status"] | undefined, page: 1, pageSize: lim })
+        ? listCadreChanges({ awaitingMe, status: statusParam as WireCadreChange["status"] | undefined, page: 1, pageSize: lim })
         : Promise.resolve(empty),
       wantCreates
-        ? listCadreCreateRequests({ status: statusParam as WireCadreCreateRequest["status"] | undefined, page: 1, pageSize: lim })
+        ? listCadreCreateRequests({ awaitingMe, status: statusParam as WireCadreCreateRequest["status"] | undefined, page: 1, pageSize: lim })
         : Promise.resolve(empty),
     ])
       .then(([changes, creates]) => {
@@ -151,7 +167,7 @@ export default function ApprovalsPage() {
     // a .then callback rather than synchronously in the effect body itself
     // (react-hooks/set-state-in-effect) -- `loading` already starts true, this
     // just kicks off the real network call.
-    Promise.resolve().then(() => runFetch(typeFilter, statusFilter, limit));
+    Promise.resolve().then(() => runFetch(typeFilter, statusFilter, limit, queueMode));
     // Mount-only: every later refetch is triggered explicitly by a click handler
     // below, not by this effect reacting to filter state changing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,24 +188,31 @@ export default function ApprovalsPage() {
     });
   }, [items]);
 
+  function selectQueueMode(v: QueueMode) {
+    setQueueMode(v);
+    setLimit(PAGE_SIZE);
+    setSelected(new Set());
+    runFetch(typeFilter, statusFilter, PAGE_SIZE, v);
+  }
+
   function selectType(v: TypeFilter) {
     setTypeFilter(v);
     setLimit(PAGE_SIZE);
     setSelected(new Set());
-    runFetch(v, statusFilter, PAGE_SIZE);
+    runFetch(v, statusFilter, PAGE_SIZE, queueMode);
   }
 
   function selectStatus(v: StatusFilter) {
     setStatusFilter(v);
     setLimit(PAGE_SIZE);
     setSelected(new Set());
-    runFetch(typeFilter, v, PAGE_SIZE);
+    runFetch(typeFilter, v, PAGE_SIZE, queueMode);
   }
 
   function loadMore() {
     const next = limit + PAGE_SIZE;
     setLimit(next);
-    runFetch(typeFilter, statusFilter, next);
+    runFetch(typeFilter, statusFilter, next, queueMode);
   }
 
   const actionableItems = items.filter((item) => isActionable(item.data, myRole));
@@ -228,7 +251,7 @@ export default function ApprovalsPage() {
       // Only the failures stay selected -- a retry click re-attempts just those.
       setSelected(failedKeys);
       setBulkError(failCount > 0 ? `${targets.length} में से ${failCount} स्वीकृति विफल रही। शेष के लिए पुनः प्रयास करें।` : null);
-      runFetch(typeFilter, statusFilter, limit);
+      runFetch(typeFilter, statusFilter, limit, queueMode);
     }).finally(() => setBulkBusy(false));
   }
 
@@ -240,10 +263,13 @@ export default function ApprovalsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
             <div className="dash-card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "var(--space-3)" }}>
-                <FilterTabs tabs={TYPE_TABS} active={typeFilter} onChange={selectType} />
+                <FilterTabs tabs={QUEUE_TABS} active={queueMode} onChange={selectQueueMode} />
                 <span className="badge badge--brand tabular-nums">{total} अनुरोध</span>
               </div>
-              <FilterTabs tabs={STATUS_TABS} active={statusFilter} onChange={selectStatus} />
+              <FilterTabs tabs={TYPE_TABS} active={typeFilter} onChange={selectType} />
+              {/* Status is meaningless in "mine" mode -- the backend always forces it
+                  to pending (ADR-028: only an outstanding rung is ever "awaiting me"). */}
+              {queueMode === "all" && <FilterTabs tabs={STATUS_TABS} active={statusFilter} onChange={selectStatus} />}
             </div>
 
             {!error && !loading && actionableItems.length > 0 && (
@@ -295,7 +321,7 @@ export default function ApprovalsPage() {
                   <ApprovalItemCard
                     key={itemKey(item)}
                     item={item}
-                    onChanged={() => runFetch(typeFilter, statusFilter, limit)}
+                    onChanged={() => runFetch(typeFilter, statusFilter, limit, queueMode)}
                     selected={selected.has(itemKey(item))}
                     onToggleSelect={() => toggleOne(item)}
                   />
