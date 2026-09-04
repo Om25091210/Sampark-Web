@@ -13,7 +13,7 @@ import {
   type WireCadreChange,
   type WireCadreCreateRequest,
 } from "@/lib/api";
-import { fieldLabel, displayValue, ROLE_LABELS, STATUS_LABELS, STATUS_TONE } from "@/lib/approvals";
+import { fieldLabel, displayValue, ROLE_LABELS, STATUS_LABELS, STATUS_TONE, isActionable } from "@/lib/approvals";
 import { formatDate } from "@/lib/cadres";
 
 export type ApprovalItem =
@@ -44,6 +44,7 @@ const DRAFT_FIELD_ORDER = [
   "surrenderDate",
   "surrenderLocation",
   "surrenderOrigin",
+  "otherOriginType",
   "surrenderYear",
   "verificationOffice",
   "supervisoryOffice",
@@ -106,9 +107,12 @@ function ApprovalChain({ item }: { item: ApprovalItem }) {
 interface Props {
   item: ApprovalItem;
   onChanged: () => void;
+  /** Checkbox state for the list page's select-all/bulk-approve bar. Omitted entirely (no checkbox rendered) when the item isn't actionable by this caller. */
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }
 
-export default function ApprovalItemCard({ item, onChanged }: Props) {
+export default function ApprovalItemCard({ item, onChanged, selected, onToggleSelect }: Props) {
   const [busy, setBusy] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
@@ -118,10 +122,7 @@ export default function ApprovalItemCard({ item, onChanged }: Props) {
   const status = STATUS_LABELS[d.status] ?? d.status;
   const tone = STATUS_TONE[d.status] ?? "neutral";
   const myRole = getRole();
-  // Actionable only when the caller's own role matches the specific rung this
-  // request is waiting on -- mirrors the backend's awaitingMe filter (ADR-028):
-  // a super_admin cannot jump ahead of an outstanding admin rung from here either.
-  const canAct = d.awaitingRole !== undefined && d.awaitingRole !== null && d.awaitingRole === myRole;
+  const canAct = isActionable(d, myRole);
 
   function approve() {
     setBusy(true);
@@ -155,15 +156,26 @@ export default function ApprovalItemCard({ item, onChanged }: Props) {
     <div className="dash-card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--space-3)" }}>
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
-            <span className="t-h4">{item.kind === "change" ? (item.data.cadre?.name ?? `कैडर #${item.data.cadreId}`) : item.data.draft.name}</span>
-            <Badge tone={item.kind === "create" ? "brand" : "neutral"}>{item.kind === "create" ? "नया कैडर अनुरोध" : "परिवर्तन अनुरोध"}</Badge>
-            <Badge tone={tone}>{status}</Badge>
-          </div>
-          {item.kind === "change" && item.data.cadre?.serialNumber && (
-            <p className="t-caption" style={{ marginTop: "2px" }}>क्रमांक: {item.data.cadre.serialNumber}</p>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)" }}>
+          {canAct && onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={selected ?? false}
+              onChange={onToggleSelect}
+              aria-label="स्वीकृति हेतु चुनें"
+              style={{ width: 18, height: 18, marginTop: 3, accentColor: "var(--brand)", cursor: "pointer", flexShrink: 0 }}
+            />
           )}
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
+              <span className="t-h4">{item.kind === "change" ? (item.data.cadre?.name ?? `कैडर #${item.data.cadreId}`) : item.data.draft.name}</span>
+              <Badge tone={item.kind === "create" ? "brand" : "neutral"}>{item.kind === "create" ? "नया कैडर अनुरोध" : "परिवर्तन अनुरोध"}</Badge>
+              <Badge tone={tone}>{status}</Badge>
+            </div>
+            {item.kind === "change" && item.data.cadre?.serialNumber && (
+              <p className="t-caption" style={{ marginTop: "2px" }}>क्रमांक: {item.data.cadre.serialNumber}</p>
+            )}
+          </div>
         </div>
         <span className="t-caption tabular-nums" style={{ whiteSpace: "nowrap" }}>{formatDate(d.submittedAt)}</span>
       </div>

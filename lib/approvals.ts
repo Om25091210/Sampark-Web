@@ -4,7 +4,7 @@
 // mobile app's ChangeRequestCard.tsx FIELD_LABELS so a field reads identically
 // on both platforms.
 
-import { CATEGORY_OPTIONS, type CadreCategory } from "@/lib/cadres";
+import { CATEGORY_OPTIONS, OTHER_ORIGIN_TYPE_LABELS, type CadreCategory, type OtherOriginType } from "@/lib/cadres";
 
 export const FIELD_LABELS: Record<string, string> = {
   name: "नाम",
@@ -20,6 +20,7 @@ export const FIELD_LABELS: Record<string, string> = {
   surrenderDate: "समर्पण दिनांक",
   surrenderLocation: "समर्पण स्थान",
   surrenderOrigin: "समर्पण मूल",
+  otherOriginType: "समर्पण उप-मूल",
   surrenderYear: "समर्पण वर्ष",
   familyGroupInfo: "परिचितों की जानकारी",
   subDivision: "सब डीवीजन",
@@ -65,6 +66,17 @@ export const STATUS_TONE: Record<string, "pending" | "success" | "danger" | "neu
   stale: "danger",
 };
 
+/**
+ * Whether `role` is the specific rung an approval item (a WireCadreChange or
+ * WireCadreCreateRequest) is currently waiting on -- mirrors the backend's
+ * `awaitingMe` filter (ADR-028). Shared by the per-card approve/reject buttons
+ * and the list page's select-all/bulk-approve so both apply the identical
+ * rule: a super_admin can't act on an outstanding admin rung from here either.
+ */
+export function isActionable(d: { awaitingRole?: string | null }, role: string | null): boolean {
+  return d.awaitingRole !== undefined && d.awaitingRole !== null && d.awaitingRole === role;
+}
+
 const CATEGORY_LABELS: Record<CadreCategory, string> = Object.fromEntries(
   CATEGORY_OPTIONS.map((c) => [c.value, c.label]),
 ) as Record<CadreCategory, string>;
@@ -78,6 +90,9 @@ export function displayValue(field: string, v: unknown): string {
   if (v === false) return "नहीं";
   if (field === "category" && typeof v === "string") return CATEGORY_LABELS[v as CadreCategory] ?? v;
   if (field === "gender" && typeof v === "string") return GENDER_LABELS[v] ?? v;
+  if (field === "otherOriginType" && typeof v === "string") {
+    return OTHER_ORIGIN_TYPE_LABELS[v as OtherOriginType] ?? v;
+  }
   if ((field === "surrenderDate" || field === "dateOfBirth") && typeof v === "string") {
     const d = new Date(v);
     if (!Number.isNaN(d.getTime())) {
