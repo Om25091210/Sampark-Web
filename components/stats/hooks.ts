@@ -23,10 +23,13 @@ export interface StatsQuery<T> {
  * older key is discarded. `key` MUST encode every input `fetcher` closes over -- it is the
  * effect's only dependency.
  */
-export function useStatsQuery<T>(key: string, fetcher: () => Promise<T>): StatsQuery<T> {
+export function useStatsQuery<T>(key: string, fetcher: () => Promise<T>, enabled = true): StatsQuery<T> {
   const [result, setResult] = useState<QueryResult<T> | null>(null);
 
   useEffect(() => {
+    // Not ready (e.g. waiting on the option list a filter is resolved through): stay in
+    // `loading` rather than fetch a result that would be about to change.
+    if (!enabled) return;
     let cancelled = false;
     fetcher()
       .then((data) => {
@@ -39,7 +42,7 @@ export function useStatsQuery<T>(key: string, fetcher: () => Promise<T>): StatsQ
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` encodes everything `fetcher` reads.
-  }, [key]);
+  }, [key, enabled]);
 
   const current = result !== null && result.key === key;
   return { data: result?.data ?? null, loading: !current, error: current && result.error };

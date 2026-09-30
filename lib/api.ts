@@ -525,6 +525,12 @@ export interface ListCadresParams {
   alertLevel?: string[];
   /** Dashboard "लंबित रिपोर्टिंग" tile drill-down — no live report in the last 30 days. */
   pendingReporting?: boolean;
+  /** जेल/जमानत case filters (stats page). A person matches `caseStage` when ANY of their
+   *  cases is in ANY selected stage; `uapaApplied`/`publicHarm` are AND'd flags. */
+  caseStage?: ("in_jail" | "on_bail" | "under_investigation" | "under_trial" | "concluded")[];
+  uapaApplied?: boolean;
+  publicHarm?: boolean;
+  hasFir?: "yes" | "no";
   page?: number;
   pageSize?: number;
 }
@@ -537,6 +543,10 @@ export async function listCadres(params: ListCadresParams): Promise<PaginatedRes
       thana: params.thana,
       alertLevel: params.alertLevel,
       pendingReporting: params.pendingReporting ? "true" : undefined,
+      caseStage: params.caseStage,
+      uapaApplied: params.uapaApplied ? "true" : undefined,
+      publicHarm: params.publicHarm ? "true" : undefined,
+      hasFir: params.hasFir,
       page: params.page,
       pageSize: params.pageSize,
     },
@@ -1006,6 +1016,30 @@ export async function rejectCadreCreateRequest(id: number, reason: string): Prom
     method: "POST",
     body: { reason },
   });
+}
+
+// ─── Approval queues, counts only (stats page) ─────────────────────────────────
+//
+// The four approval ladders share one list shape (`status`, `awaitingMe`, paginated with an
+// exact `total`), so a count is a one-row page read -- the total comes from the server, never
+// from summing pages in the browser.
+export type ApprovalQueueKind = "changes" | "create" | "proforma-a" | "proforma-b";
+
+const APPROVAL_QUEUE_PATHS: Record<ApprovalQueueKind, string> = {
+  changes: "/changes",
+  create: "/cadre-create-requests",
+  "proforma-a": "/proforma-a-changes",
+  "proforma-b": "/proforma-b-changes",
+};
+
+export async function countApprovalQueue(
+  kind: ApprovalQueueKind,
+  filter: { status?: "pending" | "applied" | "rejected" | "cancelled" | "stale"; awaitingMe?: boolean },
+): Promise<number> {
+  const page = await apiFetch<{ total: number }>(APPROVAL_QUEUE_PATHS[kind], {
+    query: { status: filter.status, awaitingMe: filter.awaitingMe ? "true" : undefined, pageSize: 1 },
+  });
+  return page.total;
 }
 
 // ─── Config (Phase 6 — Configuration page, super_admin only, ADR-059) ───────────

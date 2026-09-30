@@ -2,11 +2,13 @@
 
 import { useCallback } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import JailTab from "./JailTab";
 import OverviewTab from "./OverviewTab";
 import ProfileTab from "./ProfileTab";
 import RegionTab from "./RegionTab";
 import ReportingTab from "./ReportingTab";
 import SurrenderTab from "./SurrenderTab";
+import WorkflowTab from "./WorkflowTab";
 
 const TABS = [
   { key: "overview", label: "अवलोकन" },
@@ -14,6 +16,8 @@ const TABS = [
   { key: "region", label: "क्षेत्र और अधिकारी" },
   { key: "profile", label: "कैडर प्रोफ़ाइल" },
   { key: "surrenders", label: "समर्पण रुझान" },
+  { key: "jail", label: "जेल/जमानत" },
+  { key: "workflow", label: "कार्यप्रवाह" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];
@@ -49,7 +53,7 @@ export default function StatsView() {
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "var(--space-6)" }}>
-      <div className="seg-tabs" role="tablist" aria-label="आंकड़ों के भाग" style={{ maxWidth: 780 }}>
+      <div className="seg-tabs" role="tablist" aria-label="आंकड़ों के भाग" style={{ maxWidth: 980 }}>
         {TABS.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={t.key === tab} className="seg-tab" data-active={t.key === tab} onClick={() => selectTab(t.key)}>
             {t.label}
@@ -62,6 +66,8 @@ export default function StatsView() {
       {tab === "region" && <RegionTab params={params} update={update} />}
       {tab === "profile" && <ProfileTab params={params} update={update} />}
       {tab === "surrenders" && <SurrenderTab params={params} update={update} />}
+      {tab === "jail" && <JailTab params={params} update={update} />}
+      {tab === "workflow" && <WorkflowTab />}
     </div>
   );
 }

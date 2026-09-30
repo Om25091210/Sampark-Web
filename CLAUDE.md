@@ -29,19 +29,24 @@ endpoint yet for a cross-domain activity log or leaderboard; those stay out of P
 scope.
 
 **`/stats` (आंकड़े और विश्लेषण)** is the real analytics surface and replaces the old mock
-`/records/analytics` (now a redirect). Five tabs, view state in the URL (`?tab=&from=&to=&sd=&thana=&sort=&cat=`):
+`/records/analytics` (now a redirect). Seven tabs, view state in the URL (`?tab=&from=&to=&sd=&thana=&sort=&cat=`):
 अवलोकन (`/stats/dashboard` + `/stats/hierarchy`), रिपोर्टिंग (`GET /stats/reports/daily` — reports and
 distinct cadres per IST day, with a date-range changer), क्षेत्र और अधिकारी (`/stats/hierarchy` incl. `?by=thana`
 and `?by=officer`, plus `/stats/recency-by-thana`), कैडर प्रोफ़ाइल (`/stats/cadre-profile`: gender, age, caste, rank,
-grade, fill rates), समर्पण रुझान (`/stats/surrenders`: by surrender year + reporting cohort).
+grade, fill rates), समर्पण रुझान (`/stats/surrenders`: by surrender year + reporting cohort), जेल/जमानत
+(person counts by case stage / UAPA / जनहानि / FIR — exact server `total`s from one-row `GET /cadres` pages
+with the case filters, no backend change) and कार्यप्रवाह (status mix + HQ-ready vs SDOP-waiting split for the
+four approval queues — `total`s from each queue's own list endpoint via `countApprovalQueue`).
 Charts are hand-rolled SVG/CSS in `components/stats/` (no charting library — the stack rule below
 stands); series colours are the `--chart-cat-*` tokens in `globals.css`, palette-validated. Every chart
 ships a table twin, a tooltip that never gates a value, and states its definition (thana completion is
 *coverage*, SDOP/officer completion is 30-day *recency* — do not merge them). Snapshot charts say so
 and do not respond to the date filter. The reporting/profile/surrenders/region-scatter/recency tabs
 call endpoints that only exist on a backend that includes the Phase 1-2 stats work: on an older
-backend those cards show "आंकड़े लोड नहीं हो सके।" (each fails independently). Later phases (cases, data
-completeness, workflow) need new backend aggregates first.
+backend those cards show "आंकड़े लोड नहीं हो सके।" (each fails independently). Still NOT built, because each
+needs a new backend aggregate (never page thousands of rows into the browser to fake one): document/proforma
+coverage by thana, approval turnaround and most-changed fields, app adoption, and case breakdowns by crime
+thana / court / outcome.
 
 ## Stack (do not change without instruction)
 
