@@ -106,7 +106,9 @@ export interface DashboardStats {
     overdue3m: number;
   };
   byCategory: {
-    surrendered: { district: number; other: number; total: number };
+    // otherDistrict/otherState sub-split `other`; a cadre with a null origin (or an
+    // `other` origin with no otherOriginType yet) counts toward `total` only.
+    surrendered: { district: number; other: number; otherDistrict: number; otherState: number; total: number };
     thana: number;
     jail: number;
   };
@@ -355,8 +357,163 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return apiFetch<DashboardStats>("/stats/dashboard");
 }
 
-export async function getHierarchyStats(by?: "thana"): Promise<HierarchyStats> {
+// `by: "officer"` gives an HQ caller the per-officer rows an SDOP already gets by default
+// (HQ's default is one row per SDOP).
+export async function getHierarchyStats(by?: "thana" | "officer"): Promise<HierarchyStats> {
   return apiFetch<HierarchyStats>("/stats/hierarchy", { query: { by } });
+}
+
+// `?by=thana` returns a different row shape (no id/name) from the officer/SDOP levels,
+// and its completion means COVERAGE -- "has this cadre ever been reported on" -- not the
+// 30-day recency the other two levels use (backend hierarchy(), ADR-055 extension).
+export interface HierarchyThanaRow {
+  thana: string;
+  subDivision: string | null;
+  assignedCadres: number;
+  overdueCadres: number;
+  currentCadres: number;
+  reportingCompletion: number;
+}
+
+export interface HierarchyThanaStats {
+  level: "thanas";
+  rows: HierarchyThanaRow[];
+  totalAssigned: number;
+  totalCurrent: number;
+  overallCompletion: number;
+  unassignedCadres: number;
+}
+
+export async function getThanaHierarchyStats(): Promise<HierarchyThanaStats> {
+  return apiFetch<HierarchyThanaStats>("/stats/hierarchy", { query: { by: "thana" } });
+}
+
+// One row per IST calendar day, gaps filled with 0. `uniqueCadres` counts distinct cadres
+// reported that day; `totals.uniqueCadres` is distinct over the whole range, NOT the sum
+// of the daily figures.
+export interface ReportsDailyDay {
+  date: string;
+  reports: number;
+  uniqueCadres: number;
+}
+
+export interface ReportsDailyStats {
+  from: string;
+  to: string;
+  days: ReportsDailyDay[];
+  totals: { reports: number; uniqueCadres: number };
+}
+
+export interface ReportsDailyParams {
+  /** YYYY-MM-DD, IST. `from` and `to` go together; omitted = the last 30 days. */
+  from?: string;
+  to?: string;
+  thana?: string;
+  subDivision?: string;
+}
+
+export async function getReportsDaily(params: ReportsDailyParams = {}): Promise<ReportsDailyStats> {
+  return apiFetch<ReportsDailyStats>("/stats/reports/daily", {
+    query: { from: params.from, to: params.to, thana: params.thana, subDivision: params.subDivision },
+  });
+}
+
+// The four recency tiers per thana (same clause `/cadres?recency` uses); they sum to `total`.
+export interface RecencyByThanaRow {
+  thana: string;
+  subDivision: string | null;
+  current: number;
+  overdue1m: number;
+  overdue2m: number;
+  overdue3m: number;
+  total: number;
+}
+
+export async function getRecencyByThana(): Promise<{ rows: RecencyByThanaRow[] }> {
+  return apiFetch<{ rows: RecencyByThanaRow[] }>("/stats/recency-by-thana");
+}
+
+// Top-10 of an open-ended field, the tail folded into `other`, the blanks in `unknown`.
+export interface ProfileDistribution {
+  rows: { label: string; count: number }[];
+  other: number;
+  unknown: number;
+}
+
+export interface CadreProfileStats {
+  total: number;
+  gender: { male: number; female: number; unknown: number };
+  // Age is derived from date of birth; `noDob` rows cannot be placed in any band.
+  age: { bands: { band: string; male: number; female: number; unknownGender: number }[]; noDob: number };
+  caste: ProfileDistribution;
+  designation: ProfileDistribution;
+  post: ProfileDistribution;
+  district: ProfileDistribution;
+  grade: { A: number; B: number; C: number; jail: number; death: number; unset: number };
+  rankClass: { DVCM: number; ACM: number; PM: number; unset: number };
+  permanentStatus: {
+    deceased: number;
+    government_job: number;
+    gs: number;
+    living_elsewhere: number;
+    untraceable: number;
+    none: number;
+  };
+  /** Rows with each field filled -- the fill-rate table. */
+  coverage: {
+    dateOfBirth: number;
+    gender: number;
+    caste: number;
+    district: number;
+    post: number;
+    rankClass: number;
+    grade: number;
+    photo: number;
+  };
+}
+
+export interface CadreProfileParams {
+  category?: "surrendered" | "thana";
+  thana?: string;
+  subDivision?: string;
+}
+
+export async function getCadreProfile(params: CadreProfileParams = {}): Promise<CadreProfileStats> {
+  return apiFetch<CadreProfileStats>("/stats/cadre-profile", {
+    query: { category: params.category, thana: params.thana, subDivision: params.subDivision },
+  });
+}
+
+// One row per surrender year; `year: null` = neither a surrender date nor a year on record
+// (returned last). `active` = no permanent mark; `activeRecent` = of those, reported in the
+// last 30 days.
+export interface SurrenderYearRow {
+  year: string | null;
+  total: number;
+  district: number;
+  otherDistrict: number;
+  otherState: number;
+  unclassified: number;
+  DVCM: number;
+  ACM: number;
+  PM: number;
+  otherRank: number;
+  active: number;
+  activeRecent: number;
+  deceased: number;
+  untraceable: number;
+  otherExempt: number;
+}
+
+export interface SurrendersStats {
+  total: number;
+  years: SurrenderYearRow[];
+}
+
+export async function getSurrenders(params: { thana?: string; subDivision?: string } = {}): Promise<SurrendersStats> {
+  return apiFetch<SurrendersStats>("/stats/surrenders", {
+    query: { thana: params.thana, subDivision: params.subDivision },
+  });
 }
 
 // ─── Cadres ─────────────────────────────────────────────────────────────────────

@@ -24,7 +24,7 @@ const BASE_NAV_ITEMS = [
   { href: "/dashboard", label: "डैशबोर्ड", badge: null, icon: <LayoutGrid {...ICON_PROPS} /> },
   { href: "/approvals", label: "स्वीकृति अनुरोध", badge: null, icon: <ClipboardCheck {...ICON_PROPS} /> },
   { href: "/records", label: "रिपोर्टिंग रिकॉर्ड", badge: "12", icon: <FileText {...ICON_PROPS} /> },
-  { href: "/records/analytics", label: "रिपोर्ट विश्लेषण", badge: null, icon: <BarChart3 {...ICON_PROPS} /> },
+  { href: "/stats", label: "आंकड़े और विश्लेषण", badge: null, icon: <BarChart3 {...ICON_PROPS} /> },
   { href: "/profile", label: "प्रोफाइल", badge: null, icon: <User {...ICON_PROPS} /> },
   { href: "/officers", label: "अधिकारी सूची", badge: null, icon: <Users {...ICON_PROPS} /> },
 ];
@@ -68,8 +68,8 @@ export default function Sidebar() {
     router.replace("/login");
   }
 
-  // Only the most specific route matches, so /records/analytics highlights
-  // "रिपोर्ट विश्लेषण" alone — not its parent /records too.
+  // Only the most specific route matches, so a nested route highlights its own
+  // item alone — not its parent too (e.g. /records/[id] under /records).
   const activeHref = [...NAV_ITEMS, ...SYSTEM_ITEMS]
     .map((i) => i.href)
     .filter((h) => pathname === h || pathname.startsWith(h + "/"))

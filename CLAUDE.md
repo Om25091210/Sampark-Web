@@ -28,6 +28,21 @@ backing endpoint existed for either. `officers`/`tracker`/`notifications`/`profi
 endpoint yet for a cross-domain activity log or leaderboard; those stay out of Phase 1 backend
 scope.
 
+**`/stats` (आंकड़े और विश्लेषण)** is the real analytics surface and replaces the old mock
+`/records/analytics` (now a redirect). Five tabs, view state in the URL (`?tab=&from=&to=&sd=&thana=&sort=&cat=`):
+अवलोकन (`/stats/dashboard` + `/stats/hierarchy`), रिपोर्टिंग (`GET /stats/reports/daily` — reports and
+distinct cadres per IST day, with a date-range changer), क्षेत्र और अधिकारी (`/stats/hierarchy` incl. `?by=thana`
+and `?by=officer`, plus `/stats/recency-by-thana`), कैडर प्रोफ़ाइल (`/stats/cadre-profile`: gender, age, caste, rank,
+grade, fill rates), समर्पण रुझान (`/stats/surrenders`: by surrender year + reporting cohort).
+Charts are hand-rolled SVG/CSS in `components/stats/` (no charting library — the stack rule below
+stands); series colours are the `--chart-cat-*` tokens in `globals.css`, palette-validated. Every chart
+ships a table twin, a tooltip that never gates a value, and states its definition (thana completion is
+*coverage*, SDOP/officer completion is 30-day *recency* — do not merge them). Snapshot charts say so
+and do not respond to the date filter. The reporting/profile/surrenders/region-scatter/recency tabs
+call endpoints that only exist on a backend that includes the Phase 1-2 stats work: on an older
+backend those cards show "आंकड़े लोड नहीं हो सके।" (each fails independently). Later phases (cases, data
+completeness, workflow) need new backend aggregates first.
+
 ## Stack (do not change without instruction)
 
 - **Next.js 16.2.9 (App Router)**, React 19.2.4, TypeScript 5 (`strict: true`), Node 22.x.

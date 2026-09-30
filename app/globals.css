@@ -62,6 +62,16 @@
   /* ---- Chart / data-viz ---- */
   --bar-muted: #cbd5e1; /* slate-300 — secondary series */
   --track: #eef1f6; /* progress-bar track */
+  --chart-grid: var(--border); /* hairline gridlines */
+  --chart-axis: var(--border-strong); /* baseline */
+  /* Categorical series, fixed order (identity, never magnitude). Validated with the
+     dataviz palette checker on the white surface: lightness band, chroma floor, adjacent
+     CVD and normal-vision separation all pass. Contrast vs white is under 3:1 for cyan
+     and amber, so every chart using them also ships direct labels + a table view. */
+  --chart-cat-1: #0ea5c4; /* cyan (= brand) */
+  --chart-cat-2: #4f6be0; /* indigo */
+  --chart-cat-3: #e0699a; /* magenta */
+  --chart-cat-4: #e0993a; /* amber */
 
   /* ---- Spacing (8pt grid, 4px half-step) ---- */
   --space-1: 4px;
@@ -459,6 +469,84 @@ select {
   .stat-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* --- Stats page: 3-up metric grid + filter row + chart chrome --- */
+.stat-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+@media (max-width: 1024px) {
+  .stat-grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 560px) {
+  .stat-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+.chart-focusable {
+  border-radius: var(--radius-md);
+  outline: none;
+}
+.chart-focusable:focus-visible {
+  box-shadow: var(--shadow-focus);
+}
+.chart-tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 128px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  transform: translate(-50%, calc(-100% - var(--space-2)));
+  white-space: nowrap;
+  pointer-events: none;
+}
+.chart-table-wrap {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+.chart-table th,
+.chart-table td {
+  padding: var(--space-2) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.chart-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-sunken);
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+.chart-table [data-num="true"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.chart-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 /* --- Shared dashboard card --- */

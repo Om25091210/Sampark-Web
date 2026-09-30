@@ -9,7 +9,7 @@ const GRID_LINES = 4; // subtle horizontal rules
 // (never a raw hex) so severity reads left-to-right without a legend.
 type RecencyKey = "current" | "overdue1m" | "overdue2m" | "overdue3m";
 
-const TIERS: { key: RecencyKey; label: string; color: string }[] = [
+export const TIERS: { key: RecencyKey; label: string; color: string }[] = [
   { key: "current", label: "सामान्य", color: "var(--emerald)" },
   { key: "overdue1m", label: "सतर्क", color: "var(--amber)" },
   { key: "overdue2m", label: "जोखिम", color: "var(--violet)" },
