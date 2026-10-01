@@ -909,6 +909,26 @@ export async function approveCadreChange(id: number): Promise<WireCadreChange> {
   return apiFetch<WireCadreChange>(`/changes/${id}/approve`, { method: "POST" });
 }
 
+// Approver-queue "select all" (ADR-028's bulk endpoint). Explicit id list, max 100
+// per call — the approvals page chunks larger selections itself.
+export interface BulkApproveOutcome {
+  id: number;
+  status: "applied" | "approved" | "stale" | "error";
+  code?: string;
+}
+
+export interface BulkApproveResult {
+  results: BulkApproveOutcome[];
+  applied: number;
+  approved: number;
+  stale: number;
+  failed: number;
+}
+
+export async function bulkApproveCadreChanges(ids: number[]): Promise<BulkApproveResult> {
+  return apiFetch<BulkApproveResult>("/changes/approve-bulk", { method: "POST", body: { ids } });
+}
+
 export async function rejectCadreChange(id: number, reason: string): Promise<WireCadreChange> {
   return apiFetch<WireCadreChange>(`/changes/${id}/reject`, { method: "POST", body: { reason } });
 }
@@ -1009,6 +1029,13 @@ export async function listCadreCreateRequests(
 
 export async function approveCadreCreateRequest(id: number): Promise<WireCadreCreateRequest> {
   return apiFetch<WireCadreCreateRequest>(`/cadre-create-requests/${id}/approve`, { method: "POST" });
+}
+
+export async function bulkApproveCadreCreateRequests(ids: number[]): Promise<BulkApproveResult> {
+  return apiFetch<BulkApproveResult>("/cadre-create-requests/approve-bulk", {
+    method: "POST",
+    body: { ids },
+  });
 }
 
 export async function rejectCadreCreateRequest(id: number, reason: string): Promise<WireCadreCreateRequest> {

@@ -10,11 +10,13 @@ import { isActionable } from "@/lib/approvals";
 import {
   listCadreChanges,
   listCadreCreateRequests,
-  approveCadreChange,
-  approveCadreCreateRequest,
+  bulkApproveCadreChanges,
+  bulkApproveCadreCreateRequests,
   getRole,
   type WireCadreChange,
   type WireCadreCreateRequest,
+  type BulkApproveOutcome,
+  type BulkApproveResult,
 } from "@/lib/api";
 
 function itemKey(item: ApprovalItem): string {
@@ -52,6 +54,72 @@ const STATUS_TABS: { value: StatusFilter; label: string }[] = [
 ];
 
 const PAGE_SIZE = 20;
+
+// Both /changes and /cadre-create-requests cap pageSize at 50 server-side
+// (cadre-changes.schema.ts / cadre-create-requests.schema.ts). "load more" grows
+// `limit` past that in PAGE_SIZE steps, so a single page:1/pageSize:limit request
+// would 400 once limit > 50 -- fetchUpTo pages for real (fixed pageSize, growing
+// page) instead, so "select all" keeps working past a 50-item queue.
+const LIST_PAGE_SIZE = 50;
+
+// approve-bulk accepts up to 100 ids per call (bulkApproveBody), but the server
+// approves them one at a time -- each in its own transaction -- so a call's duration
+// grows with its id count. Sending a whole selection as one 100-id request could run
+// past the load balancer's 60s idle timeout: the browser saw a failure while the server
+// kept approving. Small sequential calls keep every request short and give the
+// progress counter something real to show.
+const BULK_CHUNK = 10;
+
+async function fetchUpTo<T>(
+  fetchPage: (page: number, pageSize: number) => Promise<{ data: T[]; total: number; hasMore: boolean }>,
+  limit: number,
+): Promise<{ data: T[]; total: number }> {
+  if (limit <= LIST_PAGE_SIZE) {
+    const res = await fetchPage(1, limit);
+    return { data: res.data, total: res.total };
+  }
+  const all: T[] = [];
+  let total = 0;
+  let page = 1;
+  while (all.length < limit) {
+    const res = await fetchPage(page, LIST_PAGE_SIZE);
+    all.push(...res.data);
+    total = res.total;
+    if (!res.hasMore) break;
+    page += 1;
+  }
+  return { data: all.slice(0, limit), total };
+}
+
+function chunkIds(ids: number[], size: number): number[][] {
+  const out: number[][] = [];
+  for (let i = 0; i < ids.length; i += size) out.push(ids.slice(i, i + size));
+  return out;
+}
+
+async function runBulkApprove(
+  ids: number[],
+  approve: (ids: number[]) => Promise<BulkApproveResult>,
+  onChunkDone: (count: number) => void,
+): Promise<BulkApproveOutcome[]> {
+  const outcomes: BulkApproveOutcome[] = [];
+  // Sequential, not Promise.all, mirroring the backend's own approve-bulk loop --
+  // avoids piling up concurrent transactions on the shared audit-chain lock.
+  for (const group of chunkIds(ids, BULK_CHUNK)) {
+    try {
+      const res = await approve(group);
+      outcomes.push(...res.results);
+    } catch {
+      // Connection dropped or the server errored: stop here rather than hammer it.
+      // The ids from this chunk on get no outcome, so the caller counts them as not
+      // approved and leaves them selected -- the refetch afterwards drops any the
+      // server did finish before the failure.
+      break;
+    }
+    onChunkDone(group.length);
+  }
+  return outcomes;
+}
 
 function FilterTabs<T extends string>({
   tabs,
@@ -111,6 +179,7 @@ export default function ApprovalsPage() {
   // caller can't actually act on).
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
   const [bulkError, setBulkError] = useState<string | null>(null);
   const myRole = getRole();
 
@@ -125,25 +194,36 @@ export default function ApprovalsPage() {
   // fires a REAL fetch -- never gated on React noticing a value actually changed.
   // That equality-based gate was the bug: clicking a tab that was already active
   // left `loading` stuck true forever, because nothing re-ran to clear it.
-  const runFetch = useCallback((type: TypeFilter, status: StatusFilter, lim: number, mode: QueueMode) => {
+  // Returns the merged, freshly-loaded items so a caller (toggleSelectAll) can act
+  // on the real result instead of the stale `items` closure a plain state read
+  // would give it right after calling this.
+  const runFetch = useCallback((type: TypeFilter, status: StatusFilter, lim: number, mode: QueueMode): Promise<ApprovalItem[]> => {
     const id = ++requestIdRef.current;
     setLoading(true);
     const awaitingMe = mode === "mine";
     const statusParam = status === "all" ? undefined : status;
     const wantChanges = type === "all" || type === "change";
     const wantCreates = type === "all" || type === "create";
-    const empty = { data: [], total: 0, page: 1, pageSize: lim, hasMore: false };
+    const emptyPool = { data: [], total: 0 };
 
-    Promise.all([
+    return Promise.all([
       wantChanges
-        ? listCadreChanges({ awaitingMe, status: statusParam as WireCadreChange["status"] | undefined, page: 1, pageSize: lim })
-        : Promise.resolve(empty),
+        ? fetchUpTo(
+            (page, pageSize) =>
+              listCadreChanges({ awaitingMe, status: statusParam as WireCadreChange["status"] | undefined, page, pageSize }),
+            lim,
+          )
+        : Promise.resolve(emptyPool),
       wantCreates
-        ? listCadreCreateRequests({ awaitingMe, status: statusParam as WireCadreCreateRequest["status"] | undefined, page: 1, pageSize: lim })
-        : Promise.resolve(empty),
+        ? fetchUpTo(
+            (page, pageSize) =>
+              listCadreCreateRequests({ awaitingMe, status: statusParam as WireCadreCreateRequest["status"] | undefined, page, pageSize }),
+            lim,
+          )
+        : Promise.resolve(emptyPool),
     ])
       .then(([changes, creates]) => {
-        if (requestIdRef.current !== id) return; // superseded by a newer click
+        if (requestIdRef.current !== id) return [] as ApprovalItem[]; // superseded by a newer click
         const merged: ApprovalItem[] = [
           ...changes.data.map((data): ApprovalItem => ({ kind: "change", data })),
           ...creates.data.map((data): ApprovalItem => ({ kind: "create", data })),
@@ -151,10 +231,12 @@ export default function ApprovalsPage() {
         setItems(merged);
         setTotal(changes.total + creates.total);
         setError(false);
+        return merged;
       })
       .catch(() => {
-        if (requestIdRef.current !== id) return;
+        if (requestIdRef.current !== id) return [] as ApprovalItem[];
         setError(true);
+        return [] as ApprovalItem[];
       })
       .finally(() => {
         if (requestIdRef.current !== id) return;
@@ -217,9 +299,24 @@ export default function ApprovalsPage() {
 
   const actionableItems = items.filter((item) => isActionable(item.data, myRole));
   const allActionableSelected = actionableItems.length > 0 && actionableItems.every((item) => selected.has(itemKey(item)));
+  const allLoaded = items.length >= total;
 
-  function toggleSelectAll() {
-    setSelected(allActionableSelected ? new Set() : new Set(actionableItems.map(itemKey)));
+  // "सभी चुनें" must mean the whole matching queue, not just whatever page happened
+  // to be loaded on screen -- if more exists, load it first (real pagination via
+  // fetchUpTo, so this works past the 50-item backend page cap too), then select
+  // from that real result rather than the stale `items` closure.
+  async function toggleSelectAll() {
+    if (allActionableSelected) {
+      setSelected(new Set());
+      return;
+    }
+    let pool = items;
+    if (!allLoaded) {
+      setLimit(total);
+      pool = await runFetch(typeFilter, statusFilter, total, queueMode);
+    }
+    const actionable = pool.filter((item) => isActionable(item.data, myRole));
+    setSelected(new Set(actionable.map(itemKey)));
   }
 
   function toggleOne(item: ApprovalItem) {
@@ -235,24 +332,54 @@ export default function ApprovalsPage() {
   function bulkApprove() {
     const targets = items.filter((item) => selected.has(itemKey(item)));
     if (targets.length === 0 || bulkBusy) return;
+    const changeIds = targets.filter((item) => item.kind === "change").map((item) => item.data.id);
+    const createIds = targets.filter((item) => item.kind === "create").map((item) => item.data.id);
     setBulkBusy(true);
     setBulkError(null);
-    Promise.allSettled(
-      targets.map((item) => (item.kind === "change" ? approveCadreChange(item.data.id) : approveCadreCreateRequest(item.data.id))),
-    ).then((results) => {
-      const failedKeys = new Set<string>();
-      let failCount = 0;
-      results.forEach((r, i) => {
-        if (r.status === "rejected") {
-          failCount += 1;
-          failedKeys.add(itemKey(targets[i]));
-        }
+    let done = 0;
+    setBulkProgress({ done, total: targets.length });
+    const tick = (count: number) => {
+      done += count;
+      setBulkProgress({ done, total: targets.length });
+    };
+
+    // The real approve-bulk endpoints (not N concurrent single-approve calls) --
+    // each id still runs the full single-approve path server-side (ladder rung,
+    // drift/stale check, self-approval guard), so a mixed-rung selection or an id
+    // approved by someone else moments ago just comes back as its own outcome
+    // instead of silently vanishing. The two kinds run one after the other (not
+    // Promise.all): they contend for the same audit-chain lock server-side anyway,
+    // and one running count across both is what the progress label shows.
+    (async () => {
+      const changeOutcomes = await runBulkApprove(changeIds, bulkApproveCadreChanges, tick);
+      const createOutcomes = await runBulkApprove(createIds, bulkApproveCadreCreateRequests, tick);
+      return [changeOutcomes, createOutcomes] as const;
+    })()
+      .then(([changeOutcomes, createOutcomes]) => {
+        const changeById = new Map(changeOutcomes.map((o) => [o.id, o]));
+        const createById = new Map(createOutcomes.map((o) => [o.id, o]));
+        const stillSelected = new Set<string>();
+        let failCount = 0;
+        targets.forEach((item) => {
+          const outcome = item.kind === "change" ? changeById.get(item.data.id) : createById.get(item.data.id);
+          const ok = outcome?.status === "applied" || outcome?.status === "approved";
+          if (!ok) {
+            failCount += 1;
+            stillSelected.add(itemKey(item));
+          }
+        });
+        // Only the failures/stale ones stay selected -- a retry click re-attempts just those.
+        setSelected(stillSelected);
+        setBulkError(failCount > 0 ? `${targets.length} में से ${failCount} स्वीकृति विफल रही। शेष के लिए पुनः प्रयास करें।` : null);
+        runFetch(typeFilter, statusFilter, limit, queueMode);
+      })
+      .catch(() => {
+        setBulkError("सामूहिक स्वीकृति विफल रही। कृपया पुनः प्रयास करें।");
+      })
+      .finally(() => {
+        setBulkBusy(false);
+        setBulkProgress(null);
       });
-      // Only the failures stay selected -- a retry click re-attempts just those.
-      setSelected(failedKeys);
-      setBulkError(failCount > 0 ? `${targets.length} में से ${failCount} स्वीकृति विफल रही। शेष के लिए पुनः प्रयास करें।` : null);
-      runFetch(typeFilter, statusFilter, limit, queueMode);
-    }).finally(() => setBulkBusy(false));
   }
 
   return (
@@ -284,13 +411,13 @@ export default function ApprovalsPage() {
                     onChange={toggleSelectAll}
                     style={{ width: 18, height: 18, accentColor: "var(--brand)", cursor: "pointer" }}
                   />
-                  सभी चुनें ({actionableItems.length} कार्रवाई योग्य)
+                  {allLoaded ? `सभी चुनें (${actionableItems.length} कार्रवाई योग्य)` : "सभी चुनें (पहले शेष अनुरोध लोड होंगे)"}
                 </label>
                 {selected.size > 0 && (
                   <>
                     <span className="badge badge--brand tabular-nums">{selected.size} चयनित</span>
                     <Button variant="primary" size="sm" disabled={bulkBusy} onClick={bulkApprove}>
-                      <Check size={14} strokeWidth={2} /> {bulkBusy ? "स्वीकृत हो रहा है..." : "चयनित सभी स्वीकृत करें"}
+                      <Check size={14} strokeWidth={2} /> {bulkBusy ? `स्वीकृत हो रहा है... ${bulkProgress?.done ?? 0}/${bulkProgress?.total ?? selected.size}` : "चयनित सभी स्वीकृत करें"}
                     </Button>
                     <Button variant="ghost" size="sm" disabled={bulkBusy} onClick={() => setSelected(new Set())}>
                       चयन हटाएं
