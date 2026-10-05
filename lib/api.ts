@@ -1081,9 +1081,26 @@ export interface WireSyncLogEntry {
   id: number;
   eventType: string;
   targetKey: string | null;
-  status: "success" | "error";
+  // "running" only ever appears on a cadre.export row that is still in flight.
+  status: "success" | "error" | "running";
   error: string | null;
+  // cadre.export rows carry a CadreExportSummary; user.* rows leave this null.
+  detail: unknown;
   createdAt: string;
+}
+
+// The run summary the backend writes into a cadre.export sync-log row
+// (cadre-export.service.ts). Counts plus a bounded sample -- never one entry per cadre.
+export interface CadreExportSummary {
+  total: number;
+  errors: number;
+  photoErrors: number;
+  // Rows the sheet kept because they hold edits not yet pushed. Absent on runs that
+  // pre-date the field.
+  skippedEdited?: number;
+  byTab: Record<string, number>;
+  errorSamples: { cadreId: number | null; serialNumber: string | null; error: string }[];
+  finishError: string | null;
 }
 
 export async function getConfig(): Promise<WireConfig> {
@@ -1096,6 +1113,37 @@ export async function updateConfig(sheetsSyncUrl: string | null): Promise<WireCo
 
 export async function listSyncLog(limit = 20): Promise<WireSyncLogEntry[]> {
   return apiFetch<WireSyncLogEntry[]>("/config/sync-log", { query: { limit } });
+}
+
+// ─── Cadre sheet sync (ADR-058 / ADR-067, super_admin only) ─────────────────────
+
+export interface SheetPreviewTab {
+  tab: string;
+  rowCount: number;
+  // Rows a human typed into the tab that have not been pushed to AWS yet.
+  pendingPush: number;
+}
+
+export interface SheetPreview {
+  ok: boolean;
+  error?: string;
+  tabs?: SheetPreviewTab[];
+  tab?: string | null;
+  rows?: Record<string, string | number | null>[];
+}
+
+/** Starts a full Postgres -> per-category-tab export. 202 returns at once; the run is
+ *  background work -- follow it through listSyncLog(). 409 EXPORT_RUNNING if one is in flight. */
+export async function startCadreSheetExport(): Promise<{ status: "started"; runId: number }> {
+  // `body: {}` is deliberate: apiFetch always sends content-type: application/json, and
+  // Fastify answers an EMPTY body under that header with a 400 before the route runs.
+  return apiFetch<{ status: "started"; runId: number }>("/cadres/export-to-sheet", { method: "POST", body: {} });
+}
+
+/** A live read of the mirror sheet via Apps Script -- slow-ish, so call it on demand,
+ *  never on page load. Without `tab`, returns only the per-tab counts. */
+export async function getSheetPreview(params: { tab?: string; limit?: number } = {}): Promise<SheetPreview> {
+  return apiFetch<SheetPreview>("/cadres/sheet-preview", { query: params });
 }
 
 export { ApiError };

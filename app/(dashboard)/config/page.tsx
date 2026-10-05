@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import Topbar from "@/components/layout/Topbar";
 import Button from "@/components/ui/Button";
+import CadreSheetSync from "@/components/config/CadreSheetSync";
 import {
   getConfig,
   updateConfig,
@@ -68,6 +69,13 @@ export default function ConfigPage() {
 
   useEffect(() => {
     loadAll();
+  }, []);
+
+  // Silent log refresh (no loading flash) -- used by CadreSheetSync to follow a running export.
+  const refreshLog = useCallback(() => {
+    listSyncLog(SYNC_LOG_LIMIT)
+      .then((res) => setLog(res))
+      .catch(() => {});
   }, []);
 
   async function handleSave() {
@@ -177,6 +185,9 @@ export default function ConfigPage() {
           )}
         </div>
 
+        {/* Cadre -> sheet sync (per-category tabs) + preview */}
+        <CadreSheetSync urlConfigured={Boolean(config?.sheetsSyncUrl)} log={log} onRefreshLog={refreshLog} />
+
         {/* Status summary */}
         <div className="card" style={{ padding: "var(--space-5)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
@@ -239,8 +250,12 @@ export default function ConfigPage() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
                     <span className="t-caption">{formatDateTime(entry.createdAt)}</span>
-                    <span className={`badge badge--${entry.status === "success" ? "success" : "danger"}`}>
-                      {entry.status === "success" ? "सफल" : "त्रुटि"}
+                    <span
+                      className={`badge badge--${
+                        entry.status === "success" ? "success" : entry.status === "running" ? "pending" : "danger"
+                      }`}
+                    >
+                      {entry.status === "success" ? "सफल" : entry.status === "running" ? "चल रहा है" : "त्रुटि"}
                     </span>
                   </div>
                 </div>
