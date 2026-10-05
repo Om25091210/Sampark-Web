@@ -1098,6 +1098,9 @@ export interface CadreExportSummary {
   // Rows the sheet kept because they hold edits not yet pushed. Absent on runs that
   // pre-date the field.
   skippedEdited?: number;
+  // Photos are a separate phase after the rows. Absent on runs that pre-date it.
+  photosTotal?: number;
+  photosDone?: number;
   byTab: Record<string, number>;
   errorSamples: { cadreId: number | null; serialNumber: string | null; error: string }[];
   finishError: string | null;

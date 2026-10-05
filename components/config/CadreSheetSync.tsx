@@ -44,9 +44,32 @@ function asExportSummary(detail: unknown): CadreExportSummary | null {
     errors: d.errors,
     photoErrors: typeof d.photoErrors === "number" ? d.photoErrors : 0,
     skippedEdited: typeof d.skippedEdited === "number" ? d.skippedEdited : undefined,
+    photosTotal: typeof d.photosTotal === "number" ? d.photosTotal : undefined,
+    photosDone: typeof d.photosDone === "number" ? d.photosDone : undefined,
     byTab: d.byTab as Record<string, number>,
     errorSamples: d.errorSamples as CadreExportSummary["errorSamples"],
     finishError: typeof d.finishError === "string" ? d.finishError : null,
+  };
+}
+
+// While a run is in flight the backend writes {phase, rowsDone, photosTotal, photosDone}
+// into the same row; show it so a long run is visibly moving. Same defensive reading.
+interface RunProgress {
+  phase: "rows" | "photos";
+  rowsDone: number;
+  photosTotal: number;
+  photosDone: number;
+}
+
+function asRunProgress(detail: unknown): RunProgress | null {
+  if (typeof detail !== "object" || detail === null || Array.isArray(detail)) return null;
+  const d = detail as Record<string, unknown>;
+  if ((d.phase !== "rows" && d.phase !== "photos") || typeof d.rowsDone !== "number") return null;
+  return {
+    phase: d.phase,
+    rowsDone: d.rowsDone,
+    photosTotal: typeof d.photosTotal === "number" ? d.photosTotal : 0,
+    photosDone: typeof d.photosDone === "number" ? d.photosDone : 0,
   };
 }
 
@@ -99,6 +122,7 @@ export default function CadreSheetSync({ urlConfigured, log, onRefreshLog }: Cad
   const latest = log.find((e) => e.eventType === "cadre.export");
   const running = latest?.status === "running";
   const summary = latest && latest.status !== "running" ? asExportSummary(latest.detail) : null;
+  const progress = latest && latest.status === "running" ? asRunProgress(latest.detail) : null;
 
   // While a run is in flight, follow it: the backend does the work in the background and
   // only reports through the sync log.
@@ -213,6 +237,13 @@ export default function CadreSheetSync({ urlConfigured, log, onRefreshLog }: Cad
                 </span>
                 <span className="t-caption">{formatDateTime(latest.createdAt)}</span>
               </div>
+              {progress && (
+                <p className="t-body-sm" style={{ marginTop: "var(--space-2)" }}>
+                  {progress.phase === "rows"
+                    ? `पंक्तियाँ लिखी जा रही हैं… अब तक ${progress.rowsDone} कैडर`
+                    : `${progress.rowsDone} कैडर शीट में हैं · फ़ोटो जोड़ी जा रही हैं: ${progress.photosDone} / ${progress.photosTotal}`}
+                </p>
+              )}
               {latest.status === "error" && latest.error && (
                 <p className="t-caption" style={{ color: "var(--rose)", marginTop: "var(--space-2)" }}>
                   {latest.error}
@@ -221,7 +252,9 @@ export default function CadreSheetSync({ urlConfigured, log, onRefreshLog }: Cad
               {summary && (
                 <div style={{ marginTop: "var(--space-3)" }}>
                   <p className="t-body-sm">
-                    कुल {summary.total} कैडर · त्रुटियाँ {summary.errors} · फ़ोटो त्रुटियाँ {summary.photoErrors}
+                    कुल {summary.total} कैडर · त्रुटियाँ {summary.errors}
+                    {(summary.photosTotal ?? 0) > 0 ? ` · फ़ोटो ${summary.photosDone ?? 0}/${summary.photosTotal}` : ""}
+                    {` · फ़ोटो त्रुटियाँ ${summary.photoErrors}`}
                   </p>
                   {(summary.skippedEdited ?? 0) > 0 && (
                     <p className="t-caption" style={{ color: "var(--amber)", marginTop: "var(--space-2)" }}>
