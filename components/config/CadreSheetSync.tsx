@@ -24,6 +24,32 @@ const TAB_LABELS: Record<string, string> = {
   "Cadre-Unclassified": "अवर्गीकृत",
 };
 
+// The sync log is shared history: rows written before the per-category export stored a flat
+// list of per-cadre outcomes (or nothing) in `detail`. Trusting the shape crashed the page
+// (Object.entries(undefined)), so the summary is shown only when every field it reads is real.
+function asExportSummary(detail: unknown): CadreExportSummary | null {
+  if (typeof detail !== "object" || detail === null || Array.isArray(detail)) return null;
+  const d = detail as Record<string, unknown>;
+  if (
+    typeof d.total !== "number" ||
+    typeof d.errors !== "number" ||
+    typeof d.byTab !== "object" ||
+    d.byTab === null ||
+    !Array.isArray(d.errorSamples)
+  ) {
+    return null;
+  }
+  return {
+    total: d.total,
+    errors: d.errors,
+    photoErrors: typeof d.photoErrors === "number" ? d.photoErrors : 0,
+    skippedEdited: typeof d.skippedEdited === "number" ? d.skippedEdited : undefined,
+    byTab: d.byTab as Record<string, number>,
+    errorSamples: d.errorSamples as CadreExportSummary["errorSamples"],
+    finishError: typeof d.finishError === "string" ? d.finishError : null,
+  };
+}
+
 function tabLabel(tab: string): string {
   return TAB_LABELS[tab] ?? tab;
 }
@@ -72,8 +98,7 @@ export default function CadreSheetSync({ urlConfigured, log, onRefreshLog }: Cad
 
   const latest = log.find((e) => e.eventType === "cadre.export");
   const running = latest?.status === "running";
-  const summary =
-    latest && latest.status !== "running" && latest.detail ? (latest.detail as CadreExportSummary) : null;
+  const summary = latest && latest.status !== "running" ? asExportSummary(latest.detail) : null;
 
   // While a run is in flight, follow it: the backend does the work in the background and
   // only reports through the sync log.
