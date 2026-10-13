@@ -69,11 +69,11 @@ export const PRIORITY: Record<PriorityCategory, { label: string; color: string; 
 };
 
 export const PERMANENT_STATUS_LABELS: Record<PermanentStatus, string> = {
-  deceased: "फौत",
+  deceased: "मृत",
   government_job: "शासकीय नौकरी",
   gs: "GS",
   living_elsewhere: "अन्य जिले में निवासरत",
-  untraceable: "अप्राप्य",
+  untraceable: "लापता",
 };
 
 // This task. Mirrors mobile's CUSTODY_STATUS_LABELS.
